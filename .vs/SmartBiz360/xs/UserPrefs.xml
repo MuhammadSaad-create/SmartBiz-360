@@ -2,9 +2,9 @@
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
     <BreakpointStore />
   </MonoDevelop.Ide.DebuggingService.Breakpoints>
-  <MonoDevelop.Ide.Workbench ActiveDocument="Program.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Data/AppDbContext.cs">
     <Files>
-      <File FileName="Program.cs" Line="36" Column="1" />
+      <File FileName="Program.cs" />
       <File FileName="appsettings.json" />
       <File FileName="Data/AppDbContext.cs" Line="12" Column="2" />
     </Files>
@@ -14,7 +14,7 @@
           <Node name="SmartBiz360">
             <Node name="SmartBiz360">
               <Node name="Data" expanded="True" />
-              <Node name="Program.cs" selected="True" />
+              <Node name="SmartBiz360.db" selected="True" />
             </Node>
           </Node>
         </State>
