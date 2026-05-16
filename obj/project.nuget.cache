@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "CTGixmdMmM0=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\malik\\source\\repos\\SmartBiz-360\\SmartBiz-360.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\malik\\.nuget\\packages\\microsoft.aspnetcore.app.internal.assets\\10.0.8\\microsoft.aspnetcore.app.internal.assets.10.0.8.nupkg.sha512"
+  ],
+  "logs": []
+}
