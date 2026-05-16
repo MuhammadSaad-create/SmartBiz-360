@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SmartBiz360")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ad54aab5784a2c9d1187d6b756a03b92c0634ee6")]
 [assembly: System.Reflection.AssemblyProductAttribute("SmartBiz360")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SmartBiz360")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

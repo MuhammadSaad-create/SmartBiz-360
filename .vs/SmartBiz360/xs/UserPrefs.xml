@@ -2,19 +2,24 @@
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
     <BreakpointStore />
   </MonoDevelop.Ide.DebuggingService.Breakpoints>
-  <MonoDevelop.Ide.Workbench ActiveDocument="Data/AppDbContext.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Shared/NavMenu.razor.css">
     <Files>
       <File FileName="Program.cs" />
       <File FileName="appsettings.json" />
       <File FileName="Data/AppDbContext.cs" Line="12" Column="2" />
+      <File FileName="Shared/NavMenu.razor" Line="30" Column="1" />
+      <File FileName="Shared/NavMenu.razor.css" Line="105" Column="1" />
     </Files>
     <Pads>
       <Pad Id="ProjectPad">
         <State name="__root__">
           <Node name="SmartBiz360">
             <Node name="SmartBiz360">
-              <Node name="Data" expanded="True" />
-              <Node name="SmartBiz360.db" selected="True" />
+              <Node name="Shared" expanded="True">
+                <Node name="NavMenu.razor" expanded="True">
+                  <Node name="NavMenu.razor.css" selected="True" />
+                </Node>
+              </Node>
             </Node>
           </Node>
         </State>
