@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "jKrEmrbuj/g=",
+  "dgSpecHash": "1rQPWsXhx+U=",
   "success": true,
   "projectFilePath": "C:\\Users\\malik\\source\\repos\\SmartBiz-360\\SmartBiz-360.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\malik\\.nuget\\packages\\bcrypt.net-next\\4.2.0\\bcrypt.net-next.4.2.0.nupkg.sha512",
     "C:\\Users\\malik\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\malik\\.nuget\\packages\\microsoft.aspnetcore.app.internal.assets\\10.0.8\\microsoft.aspnetcore.app.internal.assets.10.0.8.nupkg.sha512",
     "C:\\Users\\malik\\.nuget\\packages\\microsoft.build.framework\\18.0.2\\microsoft.build.framework.18.0.2.nupkg.sha512",

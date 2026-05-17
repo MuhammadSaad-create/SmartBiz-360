@@ -1,6 +1,7 @@
-using SmartBiz_360.Components;
 using Microsoft.EntityFrameworkCore;
+using SmartBiz_360.Components;
 using SmartBiz_360.Data;
+using SmartBiz_360.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,8 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite("Data Source=smartbiz.db"));
+
+builder.Services.AddScoped<AuthService>();
 
 var app = builder.Build();
 

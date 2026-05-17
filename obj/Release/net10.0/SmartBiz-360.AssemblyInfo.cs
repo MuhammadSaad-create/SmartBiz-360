@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SmartBiz-360")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9ae6610278421e99aa66f5f8b82bc71c9f8278f3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+df10a85615a24f0b8873e7eb69e77b8b62c1a11a")]
 [assembly: System.Reflection.AssemblyProductAttribute("SmartBiz-360")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SmartBiz-360")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

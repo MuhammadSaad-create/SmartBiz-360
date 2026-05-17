@@ -201,3 +201,5 @@ C:\Users\malik\source\repos\SmartBiz-360\obj\Debug\net10.0\refint\SmartBiz-360.d
 C:\Users\malik\source\repos\SmartBiz-360\obj\Debug\net10.0\SmartBiz-360.pdb
 C:\Users\malik\source\repos\SmartBiz-360\obj\Debug\net10.0\SmartBiz-360.genruntimeconfig.cache
 C:\Users\malik\source\repos\SmartBiz-360\obj\Debug\net10.0\ref\SmartBiz-360.dll
+C:\Users\malik\source\repos\SmartBiz-360\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt
+C:\Users\malik\source\repos\SmartBiz-360\bin\Debug\net10.0\BCrypt-Net-Next.dll
