@@ -177,3 +177,197 @@ h1:focus {
     font-size: 0.75rem;
     color: #9ca3af;
 }
+/* Dashboard Layout */
+.dashboard-layout {
+    display: flex;
+    height: 100vh;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 220px;
+    background: #1e3a8a;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    padding: 1.25rem 0;
+    flex-shrink: 0;
+}
+
+.sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.logo-icon {
+    background: #2563eb;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.logo-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.logo-sub {
+    font-size: 0.7rem;
+    color: #93c5fd;
+}
+
+.sidebar-nav {
+    flex: 1;
+    padding: 1rem 0;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 1.25rem;
+    color: #bfdbfe;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+}
+
+    .nav-item:hover, .nav-item.active {
+        background: rgba(255,255,255,0.1);
+        color: white;
+    }
+
+.sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.user-avatar {
+    background: #2563eb;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.user-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.user-role {
+    font-size: 0.7rem;
+    color: #93c5fd;
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    background: #f8fafc;
+    overflow-y: auto;
+    padding: 1.5rem;
+}
+
+/* Topbar */
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+.search-box {
+    padding: 0.5rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    width: 320px;
+    font-size: 0.9rem;
+    background: white;
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.topbar-name {
+    font-weight: 500;
+    color: #374151;
+}
+
+.btn-logout {
+    padding: 0.4rem 1rem;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-bottom: 0.4rem;
+}
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.stat-sub {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-top: 0.25rem;
+}
+
+/* Welcome Banner */
+.welcome-banner {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+    .welcome-banner h2 {
+        margin: 0 0 0.5rem;
+        color: #1e3a8a;
+    }
+
+    .welcome-banner p {
+        color: #6b7280;
+        margin: 0;
+    }
