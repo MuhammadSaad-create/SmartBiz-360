@@ -1,0 +1,122 @@
+﻿@page "/dashboard"
+@inject SessionService SessionService
+@inject NavigationManager Navigation
+
+@if (SessionService.CurrentUser == null)
+{
+    <p>Redirecting...</p>
+}
+else
+{
+    <div class="dashboard-layout">
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon">SB</div>
+                <div>
+                    <div class="logo-title">SmartBiz 360</div>
+                    <div class="logo-sub">Enterprise Hub</div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item active">
+                    <span>⊞</span> Dashboard
+                </a>
+                <a href="/employees" class="nav-item">
+                    <span>👥</span> Employees
+                </a>
+                <a href="/crm" class="nav-item">
+                    <span>🤝</span> CRM
+                </a>
+                <a href="/sales" class="nav-item">
+                    <span>💰</span> Sales
+                </a>
+                <a href="/tasks" class="nav-item">
+                    <span>✅</span> Tasks
+                </a>
+                <a href="/analytics" class="nav-item">
+                    <span>📊</span> Analytics
+                </a>
+                <a href="/reports" class="nav-item">
+                    <span>📄</span> Reports
+                </a>
+            </nav>
+
+            <div class="sidebar-user">
+                <div class="user-avatar">
+                    @SessionService.CurrentUser.FullName[0]
+                </div>
+                <div>
+                    <div class="user-name">@SessionService.CurrentUser.FullName</div>
+                    <div class="user-role">@SessionService.CurrentUser.Role</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+
+            <!-- Top Bar -->
+            <div class="topbar">
+                <input class="search-box" type="text"
+                       placeholder="Search analytics, employees, or deals..." />
+                <div class="topbar-right">
+                    <span class="topbar-name">
+                        @SessionService.CurrentUser.FullName
+                    </span>
+                    <button class="btn-logout" @onclick="Logout">Logout</button>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Employees</div>
+                    <div class="stat-value">0</div>
+                    <div class="stat-sub">System-wide</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Active Customers</div>
+                    <div class="stat-value">0</div>
+                    <div class="stat-sub">Retained clients</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Open Deals</div>
+                    <div class="stat-value">0</div>
+                    <div class="stat-sub">Active pipeline</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Today's Revenue</div>
+                    <div class="stat-value">PKR 0</div>
+                    <div class="stat-sub">Settled transactions</div>
+                </div>
+            </div>
+
+            <!-- Welcome Message -->
+            <div class="welcome-banner">
+                <h2>Welcome back, @SessionService.CurrentUser.FullName! 👋</h2>
+                <p>
+                    Your SmartBiz 360 dashboard is ready.
+                    Modules will populate as data is added.
+                </p>
+            </div>
+
+        </div>
+    </div>
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (SessionService.CurrentUser == null)
+            Navigation.NavigateTo("/login");
+    }
+
+    private void Logout()
+    {
+        SessionService.Logout();
+        Navigation.NavigateTo("/login");
+    }
+}
