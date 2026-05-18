@@ -13,7 +13,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite("Data Source=smartbiz.db"));
 
 builder.Services.AddScoped<AuthService>();
-
+builder.Services.AddScoped<SessionService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
