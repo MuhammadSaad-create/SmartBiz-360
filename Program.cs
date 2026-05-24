@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartBiz_360.Components;
 using SmartBiz_360.Data;
 using SmartBiz_360.Services;
+using SmartBiz360.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +15,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<SessionService>();
+builder.Services.AddScoped<CrmService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -31,5 +33,21 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+// Seed admin user on first run
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var auth = scope.ServiceProvider.GetRequiredService<AuthService>();
 
-app.Run();
+    bool adminExists = db.Users.Any(u => u.Role == "Admin");
+    if (!adminExists)
+    {
+        await auth.RegisterAsync(
+            fullName: "Super Admin",
+            email: "admin@smartbiz360.com",
+            password: "Admin@123",
+            role: "Admin"
+        );
+    }
+}
+await app.RunAsync();
