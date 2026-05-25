@@ -1,0 +1,335 @@
+﻿@page "/campaigns"
+@layout EmptyLayout
+@inject CampaignService CampaignService
+@inject EmailService EmailService
+@inject SessionService SessionService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<div class="dashboard-layout">
+
+    <AppSidebar CurrentPage="campaigns" />
+
+    <div class="main-content">
+        <div class="topbar">
+            <div>
+                <h2 class="page-title">Marketing Campaigns</h2>
+                <p class="page-sub">
+                    Create and manage marketing campaigns with
+                    email dispatch and ROI tracking.
+                </p>
+            </div>
+            <div class="topbar-right">
+                <button class="btn-primary" @onclick="ShowAddModal">
+                    + New Campaign
+                </button>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(message))
+        {
+            <div class="alert-success">@message</div>
+        }
+
+        <!-- Stats -->
+        <div class="stats-grid" style="margin-bottom:1rem;">
+            <div class="stat-card">
+                <div class="stat-label">Total Campaigns</div>
+                <div class="stat-value">@campaigns.Count</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Active</div>
+                <div class="stat-value" style="color:#16a34a;">
+                    @campaigns.Count(c => c.Status == "Active")
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Draft</div>
+                <div class="stat-value" style="color:#ca8a04;">
+                    @campaigns.Count(c => c.Status == "Draft")
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Completed</div>
+                <div class="stat-value" style="color:#2563eb;">
+                    @campaigns.Count(c => c.Status == "Completed")
+                </div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="data-card">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Campaign Name</th>
+                        <th>Platform</th>
+                        <th>Budget (PKR)</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in campaigns)
+                    {
+                        <tr>
+                            <td>
+                                <div class="emp-name">@c.Name</div>
+                                <div class="emp-email">
+                                    @c.TargetAudience
+                                </div>
+                            </td>
+                            <td>@c.Platform</td>
+                            <td>PKR @c.Budget.ToString("N0")</td>
+                            <td>
+                                @c.StartDate.ToString("MMM dd, yyyy")
+                            </td>
+                            <td>
+                                @c.EndDate.ToString("MMM dd, yyyy")
+                            </td>
+                            <td>
+                                <span class="badge
+                                        badge-@c.Status.ToLower()">
+                                    @c.Status
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn-icon"
+                                        @onclick="() => ShowEditModal(c)">
+                                    ✏️
+                                </button>
+                                <button class="btn-icon"
+                                        @onclick="() =>
+                                        DispatchCampaign(c)">
+                                📧
+                            </button>
+                            <button class="btn-icon"
+                                    @onclick="() =>
+                                                                            DeleteCampaign(c.Id)">
+                                🗑️
+                            </button>
+                        </td>
+                    </tr>
+                                        }
+                    @if (!campaigns.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="empty-row">
+                                No campaigns yet.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <div class="table-footer">
+                @campaigns.Count total campaigns
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (showModal)
+{
+    <div style="position:fixed;top:0;left:0;width:100vw;
+                    height:100vh;background:rgba(0,0,0,0.5);
+                    z-index:99999;display:flex;align-items:center;
+                    justify-content:center;">
+        <div style="background:white;border-radius:12px;
+                        width:520px;padding:2rem;
+                        box-shadow:0 8px 32px rgba(0,0,0,0.2);
+                        max-height:90vh;overflow-y:auto;">
+            <h3 style="margin:0 0 1rem;">
+                @(isEditing ? "Edit Campaign" : "New Campaign")
+            </h3>
+
+            @if (!string.IsNullOrEmpty(modalError))
+            {
+                <div class="alert-error">@modalError</div>
+            }
+
+            <div class="form-group">
+                <label>Campaign Name</label>
+                <input @bind="current.Name"
+                       placeholder="Summer Sale 2026"
+                       style="width:100%;padding:0.6rem;
+                                  border:1px solid #ddd;border-radius:6px;
+                                  box-sizing:border-box;" />
+            </div>
+            <div class="form-group">
+                <label>Platform</label>
+                <select @bind="current.Platform"
+                        style="width:100%;padding:0.6rem;
+                                   border:1px solid #ddd;border-radius:6px;
+                                   box-sizing:border-box;">
+                    <option>Email</option>
+                    <option>Social Media</option>
+                    <option>SMS</option>
+                    <option>Google Ads</option>
+                    <option>Multi-Channel</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Target Audience</label>
+                <input @bind="current.TargetAudience"
+                       placeholder="SMBs in Pakistan"
+                       style="width:100%;padding:0.6rem;
+                                  border:1px solid #ddd;border-radius:6px;
+                                  box-sizing:border-box;" />
+            </div>
+            <div class="form-group">
+                <label>Budget (PKR)</label>
+                <input type="number" @bind="current.Budget"
+                       style="width:100%;padding:0.6rem;
+                                  border:1px solid #ddd;border-radius:6px;
+                                  box-sizing:border-box;" />
+            </div>
+            <div class="form-group">
+                <label>Start Date</label>
+                <input type="date" @bind="current.StartDate"
+                       style="width:100%;padding:0.6rem;
+                                  border:1px solid #ddd;border-radius:6px;
+                                  box-sizing:border-box;" />
+            </div>
+            <div class="form-group">
+                <label>End Date</label>
+                <input type="date" @bind="current.EndDate"
+                       style="width:100%;padding:0.6rem;
+                                  border:1px solid #ddd;border-radius:6px;
+                                  box-sizing:border-box;" />
+            </div>
+            <div class="form-group">
+                <label>Recipient Emails</label>
+                <input @bind="current.RecipientEmails"
+                       placeholder="email1@co.com, email2@co.com"
+                       style="width:100%;padding:0.6rem;
+                                  border:1px solid #ddd;border-radius:6px;
+                                  box-sizing:border-box;" />
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select @bind="current.Status"
+                        style="width:100%;padding:0.6rem;
+                                   border:1px solid #ddd;border-radius:6px;
+                                   box-sizing:border-box;">
+                    <option>Draft</option>
+                    <option>Active</option>
+                    <option>Completed</option>
+                    <option>Cancelled</option>
+                </select>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;
+                            gap:0.75rem;margin-top:1.5rem;">
+                <button class="btn-secondary" @onclick="CloseModal">
+                    Cancel
+                </button>
+                <button class="btn-primary" @onclick="SaveCampaign">
+                    @(isEditing ? "Update" : "Create Campaign")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Campaign> campaigns = new();
+    private bool showModal = false;
+    private bool isEditing = false;
+    private string modalError = "";
+    private string message = "";
+    private Campaign current = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (SessionService.CurrentUser == null)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+        if (SessionService.CurrentUser.Role != "Admin")
+        {
+            Navigation.NavigateTo("/dashboard");
+            return;
+        }
+        await LoadData();
+    }
+
+    private async Task LoadData()
+        => campaigns = await CampaignService.GetAllAsync();
+
+    private void ShowAddModal()
+    {
+        isEditing = false;
+        current = new Campaign
+        {
+            Status = "Draft",
+            Platform = "Email",
+            StartDate = DateTime.Today,
+            EndDate = DateTime.Today.AddMonths(1)
+        };
+        modalError = "";
+        showModal = true;
+    }
+
+    private void ShowEditModal(Campaign c)
+    {
+        isEditing = true;
+        current = c;
+        modalError = "";
+        showModal = true;
+    }
+
+    private async Task SaveCampaign()
+    {
+        modalError = "";
+        if (string.IsNullOrWhiteSpace(current.Name))
+        {
+            modalError = "Campaign name is required.";
+            return;
+        }
+        if (isEditing)
+            await CampaignService.UpdateAsync(current);
+        else
+            await CampaignService.CreateAsync(current);
+
+        await LoadData();
+        CloseModal();
+    }
+
+    private async Task DispatchCampaign(Campaign c)
+    {
+        if (string.IsNullOrWhiteSpace(c.RecipientEmails))
+        {
+            message = "No recipient emails set for this campaign.";
+            return;
+        }
+
+        var emails = c.RecipientEmails
+            .Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+        foreach (var email in emails)
+        {
+            await EmailService.SendCampaignEmailAsync(
+                email.Trim(), c.Name, c.TargetAudience);
+        }
+
+        await CampaignService.UpdateStatusAsync(c.Id, "Active");
+        await LoadData();
+        message = $"Campaign dispatched to {emails.Length} recipients!";
+    }
+
+    private async Task DeleteCampaign(int id)
+    {
+        bool confirmed = await JS.InvokeAsync<bool>(
+            "confirmDelete",
+            "Are you sure you want to delete this campaign?");
+        if (!confirmed) return;
+        await CampaignService.DeleteAsync(id);
+        await LoadData();
+    }
+
+    private void CloseModal() => showModal = false;
+}
