@@ -1,15 +1,20 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SmartBiz_360.Models;
 
-namespace SmartBiz_360.Data;
-
-public class AppDbContext : DbContext
+namespace SmartBiz_360.Data
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options)
-        : base(options)
+    public class AppDbContext : DbContext
     {
-    }
+        public AppDbContext(DbContextOptions<AppDbContext> options)
+            : base(options) { }
 
-    public DbSet<Product> Products => Set<Product>();
-    public DbSet<User> Users => Set<User>();
+        public DbSet<User> Users { get; set; }
+        public DbSet<Employee> Employees { get; set; }
+        public DbSet<Customer> Customers { get; set; }
+        public DbSet<Deal> Deals { get; set; }
+        public DbSet<TaskItem> Tasks { get; set; }
+        public DbSet<Campaign> Campaigns { get; set; }
+        public DbSet<InteractionLog> InteractionLogs { get; set; }
+        public DbSet<ProductivityScore> ProductivityScores { get; set; }
+    }
 }

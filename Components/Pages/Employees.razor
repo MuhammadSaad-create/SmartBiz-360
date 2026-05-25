@@ -1,0 +1,305 @@
+﻿@page "/employees"
+@layout EmptyLayout
+@inject EmployeeService EmployeeService
+@inject SessionService SessionService
+@inject NavigationManager Navigation
+
+<div class="dashboard-layout">
+    <div class="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">SB</div>
+            <div>
+                <div class="logo-title">SmartBiz 360</div>
+                <div class="logo-sub">Management Suite</div>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/dashboard" class="nav-item">⊞ Dashboard</a>
+            <a href="/employees" class="nav-item active">👥 Employees</a>
+            <a href="/crm" class="nav-item">🤝 CRM</a>
+            <a href="/sales" class="nav-item">💰 Sales</a>
+            <a href="/tasks" class="nav-item">✅ Tasks</a>
+            <a href="/analytics" class="nav-item">📊 Analytics</a>
+            <a href="/reports" class="nav-item">📄 Reports</a>
+        </nav>
+        <div class="sidebar-user">
+            @if (SessionService.CurrentUser != null)
+            {
+                <div class="user-avatar">
+                    @SessionService.CurrentUser.FullName[0]
+                </div>
+                <div>
+                    <div class="user-name">
+                        @SessionService.CurrentUser.FullName
+                    </div>
+                    <div class="user-role">
+                        @SessionService.CurrentUser.Role
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="topbar">
+            <div>
+                <h2 class="page-title">Employee Directory</h2>
+                <p class="page-sub">
+                    Manage organization personnel and access levels.
+                </p>
+            </div>
+            <div class="topbar-right">
+                <button class="btn-primary" @onclick="ShowAddModal">
+                    + Add Employee
+                </button>
+            </div>
+        </div>
+
+        <div class="filter-bar">
+            <input class="search-box" type="text"
+                   placeholder="Filter current view..."
+                   @bind="searchTerm" @bind:event="oninput" />
+            <select class="filter-select" @bind="statusFilter">
+                <option value="">All Status</option>
+                <option value="Active">Active</option>
+                <option value="Idle">Idle</option>
+                <option value="Offline">Offline</option>
+            </select>
+        </div>
+
+        <div class="data-card">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Employee Name</th>
+                        <th>Department</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Join Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var emp in FilteredEmployees)
+                    {
+                        <tr>
+                            <td>#@emp.Id</td>
+                            <td>
+                                <div class="emp-name-cell">
+                                    <div class="emp-avatar">
+                                        @emp.User.FullName[0]
+                                    </div>
+                                    <div>
+                                        <div class="emp-name">
+                                            @emp.User.FullName
+                                        </div>
+                                        <div class="emp-email">
+                                            @emp.User.Email
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>@emp.Department</td>
+                            <td>@emp.Position</td>
+                            <td>
+                                <span class="badge badge-@emp.EmploymentStatus.ToLower()">
+                                    @emp.EmploymentStatus
+                                </span>
+                            </td>
+                            <td>@emp.JoinDate.ToString("MMM dd, yyyy")</td>
+                            <td>
+                                <button class="btn-icon"
+                                        @onclick="() => ShowEditModal(emp)">
+                                    ✏️
+                                </button>
+                                <button class="btn-icon btn-danger"
+                                        @onclick="() => DeleteEmployee(emp.Id)">
+                                    🗑️
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                    @if (!FilteredEmployees.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="empty-row">
+                                No employees found.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <div class="table-footer">
+                Showing @FilteredEmployees.Count of @employees.Count employees
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (showModal)
+{
+    <div style="position:fixed; top:0; left:0; width:100vw; height:100vh;
+        background:rgba(0,0,0,0.5); z-index:99999;
+        display:flex; align-items:center; justify-content:center;">
+        <div style="background:white; border-radius:12px; width:480px;
+            padding:2rem; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
+            <h3 style="margin:0 0 1rem;">
+                @(isEditing ? "Edit Employee" : "Add New Employee")
+            </h3>
+
+            @if (!string.IsNullOrEmpty(modalError))
+            {
+                <div class="alert-error">@modalError</div>
+            }
+
+            @if (!isEditing)
+            {
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input @bind="newUser.FullName" placeholder="John Doe"
+                           style="width:100%;padding:0.6rem;border:1px solid #ddd;
+                    border-radius:6px;box-sizing:border-box;" />
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" @bind="newUser.Email"
+                           placeholder="john@company.com"
+                           style="width:100%;padding:0.6rem;border:1px solid #ddd;
+                    border-radius:6px;box-sizing:border-box;" />
+                </div>
+            }
+
+            <div class="form-group">
+                <label>Department</label>
+                <input @bind="newEmployee.Department" placeholder="Engineering"
+                       style="width:100%;padding:0.6rem;border:1px solid #ddd;
+                border-radius:6px;box-sizing:border-box;" />
+            </div>
+            <div class="form-group">
+                <label>Position</label>
+                <input @bind="newEmployee.Position" placeholder="Senior Developer"
+                       style="width:100%;padding:0.6rem;border:1px solid #ddd;
+                border-radius:6px;box-sizing:border-box;" />
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select @bind="newEmployee.EmploymentStatus"
+                        style="width:100%;padding:0.6rem;border:1px solid #ddd;
+                    border-radius:6px;box-sizing:border-box;">
+                    <option>Active</option>
+                    <option>Idle</option>
+                    <option>Offline</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Join Date</label>
+                <input type="date" @bind="newEmployee.JoinDate"
+                       style="width:100%;padding:0.6rem;border:1px solid #ddd;
+                border-radius:6px;box-sizing:border-box;" />
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;
+                gap:0.75rem;margin-top:1.5rem;">
+                <button class="btn-secondary" @onclick="CloseModal">
+                    Cancel
+                </button>
+                <button class="btn-primary" @onclick="SaveEmployee">
+                    @(isEditing ? "Update" : "Add Employee")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Employee> employees = new();
+    private string searchTerm = "";
+    private string statusFilter = "";
+    private bool showModal = false;
+    private bool isEditing = false;
+    private string modalError = "";
+    private Employee newEmployee = new();
+    private User newUser = new();
+
+    private List<Employee> FilteredEmployees => employees
+        .Where(e =>
+            (string.IsNullOrEmpty(searchTerm) ||
+             e.User.FullName.Contains(searchTerm,
+                 StringComparison.OrdinalIgnoreCase) ||
+             e.Department.Contains(searchTerm,
+                 StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(statusFilter) ||
+             e.EmploymentStatus == statusFilter))
+        .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (SessionService.CurrentUser == null)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        employees = await EmployeeService.GetAllAsync();
+    }
+
+    private void ShowAddModal()
+    {
+        isEditing = false;
+        newEmployee = new Employee { JoinDate = DateTime.Today };
+        newUser = new User();
+        modalError = "";
+        showModal = true;
+    }
+
+    private void ShowEditModal(Employee emp)
+    {
+        isEditing = true;
+        newEmployee = emp;
+        modalError = "";
+        showModal = true;
+    }
+
+    private async Task SaveEmployee()
+    {
+        modalError = "";
+        if (isEditing)
+        {
+            await EmployeeService.UpdateAsync(newEmployee);
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(newUser.FullName) ||
+                string.IsNullOrWhiteSpace(newUser.Email))
+            {
+                modalError = "Name and Email are required.";
+                return;
+            }
+            bool success = await EmployeeService
+                .CreateAsync(newEmployee, newUser);
+            if (!success)
+            {
+                modalError = "Email already exists.";
+                return;
+            }
+        }
+        await LoadData();
+        CloseModal();
+    }
+
+    private async Task DeleteEmployee(int id)
+    {
+        await EmployeeService.DeleteAsync(id);
+        await LoadData();
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+    }
+}

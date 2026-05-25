@@ -63,6 +63,7 @@
         }
 
         // Login successful — we'll handle session next
+        SessionService.Login(user);
         Navigation.NavigateTo("/dashboard");
     }
 }
