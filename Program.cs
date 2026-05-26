@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartBiz_360.Components;
 using SmartBiz_360.Data;
 using SmartBiz_360.Services;
+using SmartBiz360.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +15,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<SessionService>();
+builder.Services.AddScoped<TaskService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
