@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿//This is DB
+using Microsoft.EntityFrameworkCore;
 using SmartBiz_360.Models;
 
 namespace SmartBiz_360.Data

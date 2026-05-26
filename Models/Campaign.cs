@@ -1,4 +1,5 @@
-﻿namespace SmartBiz_360.Models
+﻿//Campaign
+namespace SmartBiz_360.Models
 {
     public class Campaign
     {

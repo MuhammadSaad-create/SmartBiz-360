@@ -15,6 +15,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<SessionService>();
 builder.Services.AddScoped<EmployeeService>();
+builder.Services.AddScoped<CrmService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -33,4 +34,13 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-app.Run();
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var auth = scope.ServiceProvider.GetRequiredService<AuthService>();
+    bool adminExists = db.Users.Any(u => u.Role == "Admin");
+    if (!adminExists)
+        await auth.RegisterAsync("Super Admin", "admin@smartbiz360.com", "Admin@123", "Admin");
+}
+
+await app.RunAsync();

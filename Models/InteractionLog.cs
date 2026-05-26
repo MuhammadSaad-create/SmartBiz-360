@@ -1,4 +1,5 @@
-﻿namespace SmartBiz_360.Models
+﻿//interactionlog
+namespace SmartBiz_360.Models
 {
     public class InteractionLog
     {

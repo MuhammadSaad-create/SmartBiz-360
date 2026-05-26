@@ -1,4 +1,5 @@
-﻿namespace SmartBiz_360.Models
+﻿//TaskItem
+namespace SmartBiz_360.Models
 {
     public class TaskItem
     {

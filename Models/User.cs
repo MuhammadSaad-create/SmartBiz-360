@@ -1,4 +1,5 @@
-﻿namespace SmartBiz_360.Models
+﻿//Users
+namespace SmartBiz_360.Models
 {
     public class User
     {
