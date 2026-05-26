@@ -1,0 +1,246 @@
+﻿@page "/analytics"
+@layout EmptyLayout
+@inject AnalyticsService AnalyticsService
+@inject SessionService SessionService
+@inject NavigationManager Navigation
+
+<div class="dashboard-layout">
+
+    <AppSidebar CurrentPage="analytics" />
+
+    <div class="main-content">
+        <div class="topbar">
+            <div>
+                <h2 class="page-title">Analytics Dashboard</h2>
+                <p class="page-sub">
+                    Global performance metrics and organizational trends.
+                </p>
+            </div>
+            <div class="topbar-right">
+                <button class="btn-primary">↑ Export</button>
+            </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="stats-grid" style="margin-bottom:1.5rem;">
+            <div class="stat-card">
+                <div class="stat-label">Total Revenue</div>
+                <div class="stat-value" style="color:#16a34a;">
+                    PKR @totalRevenue.ToString("N0")
+                </div>
+                <div class="stat-sub">From won deals</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Customers</div>
+                <div class="stat-value">@totalCustomers</div>
+                <div class="stat-sub">@atRiskCustomers at risk</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Tasks Completed</div>
+                <div class="stat-value" style="color:#2563eb;">
+                    @tasksCompleted / @totalTasks
+                </div>
+                <div class="stat-sub">@overdueTasks overdue</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Won Deals</div>
+                <div class="stat-value" style="color:#16a34a;">
+                    @wonDeals
+                </div>
+                <div class="stat-sub">Out of @totalDeals total</div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;
+                    gap:1rem;margin-bottom:1rem;">
+            <div class="data-card" style="padding:1.25rem;">
+                <div style="font-weight:600;margin-bottom:1rem;">
+                    Deal Stage Breakdown
+                </div>
+                @foreach (var stage in dealStages)
+                {
+                    var pct = totalDeals == 0 ? 0 :
+                    (stage.Value * 100 / totalDeals);
+                    <div style="margin-bottom:0.75rem;">
+                        <div style="display:flex;
+                                        justify-content:space-between;
+                                        font-size:0.85rem;
+                                        margin-bottom:0.25rem;">
+                            <span>@stage.Key</span>
+                            <span>@stage.Value</span>
+                        </div>
+                        <div style="background:#f3f4f6;
+                                        border-radius:9999px;height:8px;">
+                            <div style="background:#2563eb;
+                                            border-radius:9999px;
+                                            height:8px;width:@(pct)%;">
+                            </div>
+                        </div>
+                    </div>
+                }
+                @if (!dealStages.Any())
+                {
+                    <p style="color:#9ca3af;font-size:0.85rem;">
+                        No deals yet.
+                    </p>
+                }
+            </div>
+
+            <div class="data-card" style="padding:1.25rem;">
+                <div style="font-weight:600;margin-bottom:1rem;">
+                    Task Status Breakdown
+                </div>
+                @foreach (var status in taskStatuses)
+                {
+                    var pct = totalTasks == 0 ? 0 :
+                    (status.Value * 100 / totalTasks);
+                    <div style="margin-bottom:0.75rem;">
+                        <div style="display:flex;
+                                        justify-content:space-between;
+                                        font-size:0.85rem;
+                                        margin-bottom:0.25rem;">
+                            <span>@status.Key</span>
+                            <span>@status.Value</span>
+                        </div>
+                        <div style="background:#f3f4f6;
+                                        border-radius:9999px;height:8px;">
+                            <div style="background:#16a34a;
+                                            border-radius:9999px;
+                                            height:8px;width:@(pct)%;">
+                            </div>
+                        </div>
+                    </div>
+                }
+                @if (!taskStatuses.Any())
+                {
+                    <p style="color:#9ca3af;font-size:0.85rem;">
+                        No tasks yet.
+                    </p>
+                }
+            </div>
+        </div>
+
+        <!-- Detail Table -->
+        <div class="data-card">
+            <div style="padding:1rem;font-weight:600;
+                        border-bottom:1px solid #f3f4f6;">
+                Analytics Detail View
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Total Employees</td>
+                        <td>@totalEmployees</td>
+                        <td>
+                            <span class="badge badge-active">
+                                Active
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Total Customers</td>
+                        <td>@totalCustomers</td>
+                        <td>
+                            <span class="badge badge-active">
+                                Tracked
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>At Risk Customers</td>
+                        <td>@atRiskCustomers</td>
+                        <td>
+                            <span class="badge badge-at-risk">
+                                At Risk
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Open Deals</td>
+                        <td>@openDeals</td>
+                        <td>
+                            <span class="badge badge-lead">
+                                In Progress
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Won Deals</td>
+                        <td>@wonDeals</td>
+                        <td>
+                            <span class="badge badge-active">
+                                Won
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Overdue Tasks</td>
+                        <td>@overdueTasks</td>
+                        <td>
+                            <span class="badge badge-at-risk">
+                                Overdue
+                            </span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@code {
+    private decimal totalRevenue;
+    private int totalCustomers, atRiskCustomers, newCustomers;
+    private int totalTasks, tasksCompleted, overdueTasks;
+    private int totalEmployees, totalDeals, openDeals, wonDeals;
+    private Dictionary<string, int> dealStages = new();
+    private Dictionary<string, int> taskStatuses = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (SessionService.CurrentUser == null)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+        if (SessionService.CurrentUser.Role == "Employee")
+        {
+            Navigation.NavigateTo("/dashboard");
+            return;
+        }
+        await LoadAnalytics();
+    }
+
+    private async Task LoadAnalytics()
+    {
+        totalEmployees = await AnalyticsService
+            .GetTotalEmployeesAsync();
+        totalCustomers = await AnalyticsService
+            .GetTotalCustomersAsync();
+        atRiskCustomers = await AnalyticsService
+            .GetAtRiskCustomersAsync();
+        newCustomers = await AnalyticsService
+            .GetNewCustomersAsync();
+        totalDeals = await AnalyticsService.GetTotalDealsAsync();
+        openDeals = await AnalyticsService.GetOpenDealsAsync();
+        wonDeals = await AnalyticsService.GetWonDealsAsync();
+        totalRevenue = await AnalyticsService
+            .GetTotalRevenueAsync();
+        totalTasks = await AnalyticsService.GetTotalTasksAsync();
+        tasksCompleted = await AnalyticsService
+            .GetCompletedTasksAsync();
+        overdueTasks = await AnalyticsService
+            .GetOverdueTasksAsync();
+        dealStages = await AnalyticsService.GetDealStagesAsync();
+        taskStatuses = await AnalyticsService
+            .GetTaskStatusesAsync();
+    }
+}
