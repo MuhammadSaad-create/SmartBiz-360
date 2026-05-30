@@ -17,6 +17,7 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<SessionService>();
 builder.Services.AddScoped<CrmService>();
 builder.Services.AddScoped<CampaignService>();
+builder.Services.AddScoped<ProductivityService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
