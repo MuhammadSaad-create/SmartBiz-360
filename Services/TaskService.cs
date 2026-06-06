@@ -1,8 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SmartBiz_360.Data;
 using SmartBiz_360.Models;
-using SmartBiz360.Data;
-using SmartBiz360.Models;
+
 
 namespace SmartBiz360.Services
 {
