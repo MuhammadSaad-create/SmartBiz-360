@@ -1,8 +1,11 @@
 ﻿@page "/login"
+@rendermode InteractiveServer
 @layout EmptyLayout
 @inject AuthService AuthService
 @inject SessionService SessionService
+@inject JwtService JwtService
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <div class="login-page">
     <div class="login-card">
@@ -26,7 +29,15 @@
         </div>
 
         <div class="form-group">
-            <label>Password</label>
+            <div style="display:flex;justify-content:space-between;
+                align-items:center;margin-bottom:0.4rem;">
+                <label style="margin:0;">Password</label>
+                <a href="/forgot-password"
+                   style="font-size:0.8rem;color:#3b82f6;
+                    text-decoration:none;">
+                    Forgot password?
+                </a>
+            </div>
             <input type="password" @bind="password"
                    placeholder="••••••••" />
         </div>
@@ -48,7 +59,8 @@
     {
         errorMessage = "";
 
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        if (string.IsNullOrWhiteSpace(email) ||
+            string.IsNullOrWhiteSpace(password))
         {
             errorMessage = "Please enter email and password.";
             return;
@@ -62,7 +74,14 @@
             return;
         }
 
-        // Login successful — we'll handle session next
+        var token = JwtService.GenerateToken(user);
+        SessionService.Login(user, token);
+
+        using var http = new HttpClient();
+        http.BaseAddress = new Uri(Navigation.BaseUri);
+        await http.PostAsJsonAsync("api/session/save",
+            new { Token = token });
+
         Navigation.NavigateTo("/dashboard");
     }
 }
