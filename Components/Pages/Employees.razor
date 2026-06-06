@@ -3,55 +3,26 @@
 @inject EmployeeService EmployeeService
 @inject SessionService SessionService
 @inject NavigationManager Navigation
+@inject EmailService EmailService
+@inject IJSRuntime JS
 
 <div class="dashboard-layout">
-    <div class="sidebar">
-        <div class="sidebar-logo">
-            <div class="logo-icon">SB</div>
-            <div>
-                <div class="logo-title">SmartBiz 360</div>
-                <div class="logo-sub">Management Suite</div>
-            </div>
-        </div>
-        <nav class="sidebar-nav">
-            <a href="/dashboard" class="nav-item">⊞ Dashboard</a>
-            <a href="/employees" class="nav-item active">👥 Employees</a>
-            <a href="/crm" class="nav-item">🤝 CRM</a>
-            <a href="/sales" class="nav-item">💰 Sales</a>
-            <a href="/tasks" class="nav-item">✅ Tasks</a>
-            <a href="/analytics" class="nav-item">📊 Analytics</a>
-            <a href="/reports" class="nav-item">📄 Reports</a>
-        </nav>
-        <div class="sidebar-user">
-            @if (SessionService.CurrentUser != null)
-            {
-                <div class="user-avatar">
-                    @SessionService.CurrentUser.FullName[0]
-                </div>
-                <div>
-                    <div class="user-name">
-                        @SessionService.CurrentUser.FullName
-                    </div>
-                    <div class="user-role">
-                        @SessionService.CurrentUser.Role
-                    </div>
-                </div>
-            }
-        </div>
-    </div>
+
+    <AppSidebar CurrentPage="employees" />
 
     <div class="main-content">
         <div class="topbar">
             <div>
                 <h2 class="page-title">Employee Directory</h2>
-                <p class="page-sub">
-                    Manage organization personnel and access levels.
-                </p>
+              
             </div>
             <div class="topbar-right">
-                <button class="btn-primary" @onclick="ShowAddModal">
-                    + Add Employee
-                </button>
+                @if (SessionService.CurrentUser?.Role == "Admin")
+                {
+                    <button class="btn-primary" @onclick="ShowAddModal">
+                        + Add Employee
+                    </button>
+                }
             </div>
         </div>
 
@@ -77,7 +48,10 @@
                         <th>Role</th>
                         <th>Status</th>
                         <th>Join Date</th>
-                        <th>Actions</th>
+                        @if (SessionService.CurrentUser?.Role == "Admin")
+                        {
+                            <th>Actions</th>
+                        }
                     </tr>
                 </thead>
                 <tbody>
@@ -103,21 +77,30 @@
                             <td>@emp.Department</td>
                             <td>@emp.Position</td>
                             <td>
-                                <span class="badge badge-@emp.EmploymentStatus.ToLower()">
+                                <span class="badge badge-@emp
+                                        .EmploymentStatus.ToLower()">
                                     @emp.EmploymentStatus
                                 </span>
                             </td>
-                            <td>@emp.JoinDate.ToString("MMM dd, yyyy")</td>
                             <td>
-                                <button class="btn-icon"
-                                        @onclick="() => ShowEditModal(emp)">
-                                    ✏️
-                                </button>
-                                <button class="btn-icon btn-danger"
-                                        @onclick="() => DeleteEmployee(emp.Id)">
-                                    🗑️
-                                </button>
+                                @emp.JoinDate.ToString("MMM dd, yyyy")
                             </td>
+                            @if (SessionService.CurrentUser?.Role
+                                                    == "Admin")
+                            {
+                                <td>
+                                    <button class="btn-icon"
+                                            @onclick="() =>
+                                            ShowEditModal(emp)">
+                                ✏️
+                            </button>
+                            <button class="btn-icon"
+                                    @onclick="() =>
+                                                                                DeleteEmployee(emp.Id)">
+                                🗑️
+                            </button>
+                        </td>
+                                                }
                         </tr>
                     }
                     @if (!FilteredEmployees.Any())
@@ -131,7 +114,8 @@
                 </tbody>
             </table>
             <div class="table-footer">
-                Showing @FilteredEmployees.Count of @employees.Count employees
+                Showing @FilteredEmployees.Count
+                of @employees.Count employees
             </div>
         </div>
     </div>
@@ -139,11 +123,11 @@
 
 @if (showModal)
 {
-    <div style="position:fixed; top:0; left:0; width:100vw; height:100vh;
-        background:rgba(0,0,0,0.5); z-index:99999;
-        display:flex; align-items:center; justify-content:center;">
-        <div style="background:white; border-radius:12px; width:480px;
-            padding:2rem; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
+    <div style="position:fixed;top:0;left:0;width:100vw;height:100vh;
+                    background:rgba(0,0,0,0.5);z-index:99999;
+                    display:flex;align-items:center;justify-content:center;">
+        <div style="background:white;border-radius:12px;width:480px;
+                        padding:2rem;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
             <h3 style="margin:0 0 1rem;">
                 @(isEditing ? "Edit Employee" : "Add New Employee")
             </h3>
@@ -157,36 +141,48 @@
             {
                 <div class="form-group">
                     <label>Full Name</label>
-                    <input @bind="newUser.FullName" placeholder="John Doe"
-                           style="width:100%;padding:0.6rem;border:1px solid #ddd;
-                    border-radius:6px;box-sizing:border-box;" />
+                    <input @bind="newUser.FullName"
+                           placeholder="John Doe"
+                           style="width:100%;padding:0.6rem;
+                                          border:1px solid #ddd;
+                                          border-radius:6px;
+                                          box-sizing:border-box;" />
                 </div>
                 <div class="form-group">
                     <label>Email</label>
                     <input type="email" @bind="newUser.Email"
                            placeholder="john@company.com"
-                           style="width:100%;padding:0.6rem;border:1px solid #ddd;
-                    border-radius:6px;box-sizing:border-box;" />
+                           style="width:100%;padding:0.6rem;
+                                          border:1px solid #ddd;
+                                          border-radius:6px;
+                                          box-sizing:border-box;" />
                 </div>
             }
-
             <div class="form-group">
                 <label>Department</label>
-                <input @bind="newEmployee.Department" placeholder="Engineering"
-                       style="width:100%;padding:0.6rem;border:1px solid #ddd;
-                border-radius:6px;box-sizing:border-box;" />
+                <input @bind="newEmployee.Department"
+                       placeholder="Engineering"
+                       style="width:100%;padding:0.6rem;
+                                  border:1px solid #ddd;
+                                  border-radius:6px;
+                                  box-sizing:border-box;" />
             </div>
             <div class="form-group">
                 <label>Position</label>
-                <input @bind="newEmployee.Position" placeholder="Senior Developer"
-                       style="width:100%;padding:0.6rem;border:1px solid #ddd;
-                border-radius:6px;box-sizing:border-box;" />
+                <input @bind="newEmployee.Position"
+                       placeholder="Senior Developer"
+                       style="width:100%;padding:0.6rem;
+                                  border:1px solid #ddd;
+                                  border-radius:6px;
+                                  box-sizing:border-box;" />
             </div>
             <div class="form-group">
                 <label>Status</label>
                 <select @bind="newEmployee.EmploymentStatus"
-                        style="width:100%;padding:0.6rem;border:1px solid #ddd;
-                    border-radius:6px;box-sizing:border-box;">
+                        style="width:100%;padding:0.6rem;
+                                   border:1px solid #ddd;
+                                   border-radius:6px;
+                                   box-sizing:border-box;">
                     <option>Active</option>
                     <option>Idle</option>
                     <option>Offline</option>
@@ -195,12 +191,14 @@
             <div class="form-group">
                 <label>Join Date</label>
                 <input type="date" @bind="newEmployee.JoinDate"
-                       style="width:100%;padding:0.6rem;border:1px solid #ddd;
-                border-radius:6px;box-sizing:border-box;" />
+                       style="width:100%;padding:0.6rem;
+                                  border:1px solid #ddd;
+                                  border-radius:6px;
+                                  box-sizing:border-box;" />
             </div>
 
             <div style="display:flex;justify-content:flex-end;
-                gap:0.75rem;margin-top:1.5rem;">
+                            gap:0.75rem;margin-top:1.5rem;">
                 <button class="btn-secondary" @onclick="CloseModal">
                     Cancel
                 </button>
@@ -240,6 +238,11 @@
             Navigation.NavigateTo("/login");
             return;
         }
+        if (SessionService.CurrentUser.Role == "Employee")
+        {
+            Navigation.NavigateTo("/dashboard");
+            return;
+        }
         await LoadData();
     }
 
@@ -265,28 +268,67 @@
         showModal = true;
     }
 
+    private static bool IsValidEmail(string email)
+    {
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email.Trim());
+            return addr.Address == email.Trim();
+        }
+        catch { return false; }
+    }
+
     private async Task SaveEmployee()
     {
         modalError = "";
+
         if (isEditing)
         {
+            if (string.IsNullOrWhiteSpace(newEmployee.Department))
+            { modalError = "Department is required."; return; }
+
+            if (string.IsNullOrWhiteSpace(newEmployee.Position))
+            { modalError = "Position is required."; return; }
+
+            if (newEmployee.JoinDate > DateTime.Today)
+            { modalError = "Join date cannot be in the future."; return; }
+
             await EmployeeService.UpdateAsync(newEmployee);
         }
         else
         {
-            if (string.IsNullOrWhiteSpace(newUser.FullName) ||
-                string.IsNullOrWhiteSpace(newUser.Email))
-            {
-                modalError = "Name and Email are required.";
-                return;
-            }
+            if (string.IsNullOrWhiteSpace(newUser.FullName))
+            { modalError = "Full name is required."; return; }
+
+            if (newUser.FullName.Trim().Length < 2)
+            { modalError = "Full name must be at least 2 characters."; return; }
+
+            if (string.IsNullOrWhiteSpace(newUser.Email))
+            { modalError = "Email address is required."; return; }
+
+            if (!IsValidEmail(newUser.Email))
+            { modalError = "Please enter a valid email address."; return; }
+
+            if (string.IsNullOrWhiteSpace(newEmployee.Department))
+            { modalError = "Department is required."; return; }
+
+            if (string.IsNullOrWhiteSpace(newEmployee.Position))
+            { modalError = "Position is required."; return; }
+
+            if (newEmployee.JoinDate > DateTime.Today)
+            { modalError = "Join date cannot be in the future."; return; }
+
             bool success = await EmployeeService
                 .CreateAsync(newEmployee, newUser);
-            if (!success)
+            if (success)
             {
-                modalError = "Email already exists.";
-                return;
+                await EmailService.SendWelcomeEmailAsync(
+                    newUser.Email,
+                    newUser.FullName,
+                    "Employee@123");
             }
+            if (!success)
+            { modalError = "An employee with this email already exists."; return; }
         }
         await LoadData();
         CloseModal();
@@ -294,12 +336,13 @@
 
     private async Task DeleteEmployee(int id)
     {
+        bool confirmed = await JS.InvokeAsync<bool>(
+            "confirmDelete",
+            "Are you sure you want to delete this employee?");
+        if (!confirmed) return;
         await EmployeeService.DeleteAsync(id);
         await LoadData();
     }
 
-    private void CloseModal()
-    {
-        showModal = false;
-    }
+    private void CloseModal() => showModal = false;
 }
