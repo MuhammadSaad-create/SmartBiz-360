@@ -17,6 +17,10 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<SessionService>();
 builder.Services.AddScoped<TaskService>();
 builder.Services.AddScoped<AnalyticsService>();
+builder.Services.AddScoped<ReportService>();
+builder.Services.AddScoped<SalesService>();
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
