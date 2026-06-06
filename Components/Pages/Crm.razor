@@ -14,9 +14,7 @@
         <div class="topbar">
             <div>
                 <h2 class="page-title">Customer Management</h2>
-                <p class="page-sub">
-                    Manage and monitor customer lifecycles and value tiers.
-                </p>
+               
             </div>
             <div class="topbar-right">
                 <button class="btn-primary" @onclick="ShowAddModal">
@@ -411,14 +409,57 @@
         showModal = true;
     }
 
+    private static bool IsValidEmail(string email)
+    {
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email.Trim());
+            return addr.Address == email.Trim();
+        }
+        catch { return false; }
+    }
+
+    private static bool IsValidPhone(string phone)
+    {
+        // Accepts formats: +92 300 0000000 / 03001234567 / +1-800-555-0199
+        var digits = new string(phone.Where(char.IsDigit).ToArray());
+        return digits.Length >= 7 && digits.Length <= 15;
+    }
+
     private async Task SaveCustomer()
     {
         modalError = "";
+
         if (string.IsNullOrWhiteSpace(current.CompanyName))
+        { modalError = "Company name is required."; return; }
+
+        if (current.CompanyName.Trim().Length < 2)
+        { modalError = "Company name must be at least 2 characters."; return; }
+
+        if (string.IsNullOrWhiteSpace(current.ContactName))
+        { modalError = "Contact name is required."; return; }
+
+        if (!string.IsNullOrWhiteSpace(current.Email) &&
+            !IsValidEmail(current.Email))
+        { modalError = "Please enter a valid email address."; return; }
+
+        if (!string.IsNullOrWhiteSpace(current.Phone) &&
+            !IsValidPhone(current.Phone))
+        { modalError = "Phone number must be 7–15 digits (e.g. +92 300 0000000)."; return; }
+
+        if (current.LastContactDate > DateTime.Today)
+        { modalError = "Last contact date cannot be in the future."; return; }
+
+        // Duplicate company name check (on add only)
+        if (!isEditing)
         {
-            modalError = "Company name is required.";
-            return;
+            bool exists = customers.Any(c =>
+                c.CompanyName.Equals(current.CompanyName.Trim(),
+                    StringComparison.OrdinalIgnoreCase));
+            if (exists)
+            { modalError = "A customer with this company name already exists."; return; }
         }
+
         if (isEditing)
             await CrmService.UpdateAsync(current);
         else

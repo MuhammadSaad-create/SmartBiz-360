@@ -5,275 +5,573 @@
 @inject NavigationManager Navigation
 @inject EmailService EmailService
 @inject AppDbContext Db
-@inject IJSRuntime JS
 
 <div class="dashboard-layout">
-
     <AppSidebar CurrentPage="productivity" />
 
     <div class="main-content">
+
+        <!-- Top Bar -->
         <div class="topbar">
             <div>
-                <h2 class="page-title">Productivity Score Engine</h2>
-                <p class="page-sub">
-                    Daily scores calculated from activity patterns.
+                <h2 class="page-title">⚡ Productivity Score Engine</h2>
+                <p style="color:#6b7280;margin:0;font-size:0.875rem;">
+                    @if (IsEmployee)
+                    {<span>Your personal productivity dashboard</span>}
+                    else
+                    {<span>Team-wide productivity monitoring and scoring</span>}
                 </p>
             </div>
             <div class="topbar-right">
-                @if (SessionService.CurrentUser?.Role != "Employee")
+                @if (!IsEmployee)
                 {
-                    <button class="btn-primary"
-                            @onclick="RecalculateAll"
+                    <button class="btn-primary" @onclick="RecalculateAll"
                             disabled="@isCalculating">
-                        @(isCalculating ? "Calculating..." :
-                                            "⟳ Recalculate All")
-                </button>
-                                }
+                        @(isCalculating ? "⏳ Calculating..." : "⟳ Recalculate All")
+                    </button>
+                }
             </div>
         </div>
 
         @if (!string.IsNullOrEmpty(message))
         {
-            <div class="alert-success">@message</div>
+            <div class="alert-success" style="margin-bottom:1rem;">@message</div>
         }
 
         <!-- Disclaimer -->
-        <div style="background:#fef9c3;border:1px solid #fde68a;
-                    border-radius:8px;padding:0.75rem 1rem;
-                    margin-bottom:1rem;font-size:0.85rem;
-                    color:#92400e;">
-            ⚠️ <strong>Disclaimer:</strong> This score reflects
-            digital activity patterns, not work quality.
+        <div style="background:#fef9c3;border:1px solid #fde68a;border-radius:8px;
+                    padding:0.65rem 1rem;margin-bottom:1.25rem;font-size:0.82rem;color:#92400e;">
+            ⚠️ <strong>Disclaimer:</strong> Scores reflect digital activity patterns, not work quality.
         </div>
 
-        <!-- Team Average — hide for employees -->
-        @if (SessionService.CurrentUser?.Role != "Employee")
+        @if (isLoading)
         {
-            <div class="stats-grid" style="margin-bottom:1rem;">
+            <div style="text-align:center;padding:3rem;color:#6b7280;">
+                <div style="font-size:2rem;">⏳</div><p>Loading scores...</p>
+            </div>
+        }
+        else if (!IsEmployee)
+        {
+            <!-- ══ ADMIN / MANAGER VIEW ══════════════════════════════════ -->
+
+            <!-- Summary stats -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+                        gap:0.75rem;margin-bottom:1.5rem;">
                 <div class="stat-card">
+                    <div class="stat-value">@teamAverage.ToString("F1")</div>
                     <div class="stat-label">Team Average Today</div>
-                    <div class="stat-value">
-                        @teamAverage.ToString("F1")%
-                    </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Employees Scored</div>
                     <div class="stat-value">@scores.Count</div>
+                    <div class="stat-label">Employees Scored</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">High Performers</div>
                     <div class="stat-value" style="color:#16a34a;">
                         @scores.Count(s => s.FinalScore >= 80)
                     </div>
+                    <div class="stat-label">High Performers</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Needs Attention</div>
-                    <div class="stat-value" style="color:#dc2626;">
-                        @scores.Count(s => s.FinalScore < 50)
+                    <div class="stat-value" style="color:#ca8a04;">
+                        @scores.Count(s => s.FinalScore >= 60 && s.FinalScore < 80)
                     </div>
+                    <div class="stat-label">Average</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color:#dc2626;">
+                        @scores.Count(s => s.FinalScore < 60)
+                    </div>
+                    <div class="stat-label">Needs Attention</div>
                 </div>
             </div>
-        }
 
-        <!-- Scores Table -->
-        <div class="data-card">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Employee</th>
-                        <th>Active Time</th>
-                        <th>App Usage</th>
-                        <th>Keyboard</th>
-                        <th>Task Rate</th>
-                        <th>Score</th>
-                        @if (SessionService.CurrentUser?.Role
-                                                != "Employee")
-                        {
-                            <th>Adjust</th>
-                        }
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var s in scores)
+            <!-- Score cards grid -->
+            @if (!scores.Any())
+            {
+                <div style="text-align:center;padding:4rem;background:white;
+                            border-radius:12px;border:2px dashed #e2e8f0;">
+                    <div style="font-size:3rem;">📊</div>
+                    <h3 style="color:#374151;margin:0.5rem 0;">No Scores Yet</h3>
+                    <p style="color:#6b7280;">Click "Recalculate All" to generate today's scores.</p>
+                    <button class="btn-primary" style="margin-top:0.5rem;"
+                            @onclick="RecalculateAll" disabled="@isCalculating">
+                        ⟳ Calculate Now
+                    </button>
+                </div>
+            }
+            else
+            {
+                <!-- Team score cards -->
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+                            gap:1rem;margin-bottom:1.5rem;">
+                    @foreach (var s in scores.OrderByDescending(s => s.FinalScore))
                     {
-                        <tr>
-                            <td>
-                                <div class="emp-name">
-                                    @s.Employee.User.FullName
+                        <div class="pv-card" @onclick="() => ToggleDrill(s.Id)">
+                            <!-- Card header -->
+                            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;">
+                                <div style="width:42px;height:42px;border-radius:50%;
+                                            background:@GetScoreColor(s.FinalScore);
+                                            color:white;display:flex;align-items:center;
+                                            justify-content:center;font-size:1rem;
+                                            font-weight:700;flex-shrink:0;">
+                                    @s.Employee.User.FullName[0]
                                 </div>
-                                <div class="emp-email">
-                                    @s.Employee.Department
-                                </div>
-                            </td>
-                            <td>
-                                @((s.ActiveTimeRatio * 100)
-                                                            .ToString("F0"))%
-                                                                        </td>
-                                                                        <td>
-                                @((s.ProductiveAppUsage * 100)
-                                                            .ToString("F0"))%
-                                                                        </td>
-                                                                        <td>
-                                @((s.KeyboardIntensity * 100)
-                                                            .ToString("F0"))%
-                                                                        </td>
-                                                                        <td>
-                                @((s.TaskCompletionRate * 100)
-                                                            .ToString("F0"))%
-                        </td>
-                        <td>
-                            <div style="display:flex;
-                                    align-items:center;gap:0.5rem;">
-                                <div style="background:#f3f4f6;
-                                        border-radius:9999px;
-                                        height:8px;width:80px;">
-                                    <div style="background:
-                                            @GetScoreColor(
-                                                                                             s.FinalScore);
-                                            border-radius:9999px;
-                                            height:8px;
-                                            width:@((int)s.FinalScore)%;">
+                                <div style="flex:1;min-width:0;">
+                                    <div style="font-weight:600;color:#1e293b;
+                                                white-space:nowrap;overflow:hidden;
+                                                text-overflow:ellipsis;">
+                                        @s.Employee.User.FullName
+                                    </div>
+                                    <div style="font-size:0.75rem;color:#6b7280;">
+                                        @s.Employee.Department — @s.Employee.Position
                                     </div>
                                 </div>
-                                <strong>
-                                    @s.FinalScore.ToString("F0")
-                                </strong>
+                                <!-- Big score -->
+                                <div style="text-align:right;flex-shrink:0;">
+                                    <div style="font-size:1.6rem;font-weight:800;
+                                                color:@GetScoreColor(s.FinalScore);">
+                                        @s.FinalScore.ToString("F0")
+                                    </div>
+                                    <div style="font-size:0.68rem;color:#9ca3af;">/ 100</div>
+                                </div>
                             </div>
-                            @if (s.ManualAdjustment != 0)
+
+                            <!-- Score badge -->
+                            <div style="margin-bottom:0.75rem;">
+                                <span class="pv-badge pv-badge-@GetGradeClass(s.FinalScore)">
+                                    @GetGradeLabel(s.FinalScore)
+                                </span>
+                                @if (s.ManualAdjustment != 0)
                                 {
-                                    <div style="font-size:0.75rem;
-                                                color:#6b7280;">
-                                        Adj: @(s.ManualAdjustment > 0
-                                                                        ? "+" : "")
-                                @s.ManualAdjustment
+                                    <span style="font-size:0.72rem;color:#6b7280;margin-left:0.4rem;">
+                                        (adj: @(s.ManualAdjustment > 0 ? "+" : "")@s.ManualAdjustment)
+                                    </span>
+                                }
                             </div>
-                                                        }
-                            </td>
-                            @if (SessionService.CurrentUser?.Role
-                                                    != "Employee")
+
+                            <!-- Overall progress bar -->
+                            <div style="background:#f1f5f9;border-radius:9999px;height:8px;margin-bottom:0.75rem;">
+                                <div style="background:@GetScoreColor(s.FinalScore);
+                                            height:8px;border-radius:9999px;
+                                            width:@((int)Math.Min(s.FinalScore,100))%;
+                                            transition:width 0.4s ease;">
+                                </div>
+                            </div>
+
+                            <!-- Component breakdown -->
+                            @if (drillId == s.Id)
                             {
-                                <td>
-                                    <button class="btn-icon"
-                                            @onclick="() =>
-                                            ShowAdjustModal(s)">
-                                ✏️
-                            </button>
-                        </td>
-                                                }
-                        </tr>
+                                <div style="border-top:1px solid #f1f5f9;padding-top:0.75rem;
+                                            margin-top:0.25rem;">
+                                    <div style="font-size:0.72rem;font-weight:700;color:#6b7280;
+                                                text-transform:uppercase;letter-spacing:0.05em;
+                                                margin-bottom:0.5rem;">Score Breakdown</div>
+
+                                    @foreach (var (label, val, weight) in new[]{
+                                        ("Active Time",     s.ActiveTimeRatio,      35),
+                                        ("Productive Apps", s.ProductiveAppUsage,   30),
+                                        ("Keyboard Use",    s.KeyboardIntensity,    20),
+                                        ("Task Completion", s.TaskCompletionRate,   15)
+                                    })
+                                    {
+                                        <div style="margin-bottom:0.4rem;">
+                                            <div style="display:flex;justify-content:space-between;
+                                                        font-size:0.75rem;color:#64748b;margin-bottom:2px;">
+                                                <span>@label <span style="color:#94a3b8;">(@weight%)</span></span>
+                                                <span style="font-weight:600;">@((val * 100).ToString("F0"))%</span>
+                                            </div>
+                                            <div style="background:#f1f5f9;border-radius:9999px;height:5px;">
+                                                <div style="background:#3b82f6;height:5px;border-radius:9999px;
+                                                            width:@((int)(val*100))%;"></div>
+                                            </div>
+                                        </div>
+                                    }
+
+                                    @if (!string.IsNullOrEmpty(s.AdjustmentNote))
+                                    {
+                                        <div style="font-size:0.75rem;color:#6b7280;
+                                                    margin-top:0.5rem;padding:0.4rem 0.6rem;
+                                                    background:#f8fafc;border-radius:5px;">
+                                            📝 @s.AdjustmentNote
+                                        </div>
+                                    }
+
+                                    <div style="display:flex;justify-content:space-between;
+                                                align-items:center;margin-top:0.6rem;">
+                                        <span style="font-size:0.72rem;color:#9ca3af;">
+                                            📅 @s.Date.ToString("MMM dd, yyyy")
+                                        </span>
+                                        <button class="btn-secondary"
+                                                style="padding:0.25rem 0.65rem;font-size:0.75rem;"
+                                                @onclick="() => ShowAdjustModal(s)"
+                                                @onclick:stopPropagation="true">
+                                            ✏️ Adjust
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <!-- Mini breakdown preview -->
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.3rem;">
+                                    @foreach (var (lbl, v) in new[]{
+                                        ("Active", s.ActiveTimeRatio),
+                                        ("Apps",   s.ProductiveAppUsage),
+                                        ("Keys",   s.KeyboardIntensity),
+                                        ("Tasks",  s.TaskCompletionRate)
+                                    })
+                                    {
+                                        <div style="font-size:0.72rem;color:#64748b;
+                                                    display:flex;justify-content:space-between;
+                                                    background:#f8fafc;padding:2px 6px;border-radius:4px;">
+                                            <span>@lbl</span>
+                                            <span style="font-weight:600;">@((v*100).ToString("F0"))%</span>
+                                        </div>
+                                    }
+                                </div>
+                                <div style="font-size:0.72rem;color:#94a3b8;margin-top:0.4rem;text-align:right;">
+                                    Click to expand ▼
+                                </div>
+                            }
+                        </div>
                     }
-                    @if (!scores.Any())
-                    {
-                        <tr>
-                            <td colspan="7" class="empty-row">
-                                No scores yet. Click
-                                "Recalculate All" to generate
-                                today's scores.
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+                </div>
+
+                <!-- Leaderboard table -->
+                <div class="card" style="overflow:hidden;">
+                    <div style="padding:1rem 1.25rem;border-bottom:1px solid #e2e8f0;
+                                display:flex;justify-content:space-between;align-items:center;">
+                        <h3 style="margin:0;font-size:0.95rem;font-weight:700;color:#1e293b;">
+                            📋 Full Leaderboard
+                        </h3>
+                        <span style="font-size:0.8rem;color:#6b7280;">@scores.Count employees</span>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%;border-collapse:collapse;">
+                            <thead>
+                                <tr style="background:#f8fafc;">
+                                    <th class="pv-th">#</th>
+                                    <th class="pv-th">Employee</th>
+                                    <th class="pv-th">Active Time</th>
+                                    <th class="pv-th">App Usage</th>
+                                    <th class="pv-th">Keyboard</th>
+                                    <th class="pv-th">Task Rate</th>
+                                    <th class="pv-th">Score</th>
+                                    <th class="pv-th">Grade</th>
+                                    <th class="pv-th">Adjust</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{ int rank = 1; }
+                                @foreach (var s in scores.OrderByDescending(s => s.FinalScore))
+                                {
+                                    <tr style="border-bottom:1px solid #f1f5f9;">
+                                        <td class="pv-td" style="color:#9ca3af;font-weight:700;">
+                                            @if (rank == 1) {<span>🥇</span>}
+                                            else if (rank == 2) {<span>🥈</span>}
+                                            else if (rank == 3) {<span>🥉</span>}
+                                            else {<span style="color:#cbd5e1;">@rank</span>}
+                                        </td>
+                                        <td class="pv-td">
+                                            <div style="font-weight:600;color:#1e293b;">
+                                                @s.Employee.User.FullName
+                                            </div>
+                                            <div style="font-size:0.74rem;color:#6b7280;">
+                                                @s.Employee.Department
+                                            </div>
+                                        </td>
+                                        <td class="pv-td">@((s.ActiveTimeRatio*100).ToString("F0"))%</td>
+                                        <td class="pv-td">@((s.ProductiveAppUsage*100).ToString("F0"))%</td>
+                                        <td class="pv-td">@((s.KeyboardIntensity*100).ToString("F0"))%</td>
+                                        <td class="pv-td">@((s.TaskCompletionRate*100).ToString("F0"))%</td>
+                                        <td class="pv-td">
+                                            <div style="display:flex;align-items:center;gap:0.5rem;">
+                                                <div style="background:#f1f5f9;border-radius:9999px;
+                                                            height:6px;width:70px;">
+                                                    <div style="background:@GetScoreColor(s.FinalScore);
+                                                                height:6px;border-radius:9999px;
+                                                                width:@((int)Math.Min(s.FinalScore,100))%;">
+                                                    </div>
+                                                </div>
+                                                <strong style="color:@GetScoreColor(s.FinalScore);">
+                                                    @s.FinalScore.ToString("F0")
+                                                </strong>
+                                            </div>
+                                        </td>
+                                        <td class="pv-td">
+                                            <span class="pv-badge pv-badge-@GetGradeClass(s.FinalScore)"
+                                                  style="font-size:0.7rem;padding:2px 8px;">
+                                                @GetGradeLabel(s.FinalScore)
+                                            </span>
+                                        </td>
+                                        <td class="pv-td">
+                                            <button class="btn-icon" @onclick="() => ShowAdjustModal(s)">
+                                                ✏️
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    rank++;
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <!-- ══ EMPLOYEE SELF-VIEW ════════════════════════════════════ -->
+            @if (myScore == null)
+            {
+                <div style="text-align:center;padding:4rem;background:white;
+                            border-radius:12px;border:2px dashed #e2e8f0;">
+                    <div style="font-size:3rem;">📊</div>
+                    <h3 style="color:#374151;margin:0.5rem 0;">No Score Yet Today</h3>
+                    <p style="color:#6b7280;">Your manager will generate today's score shortly.</p>
+                </div>
+            }
+            else
+            {
+                <!-- Big score display -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;
+                            margin-bottom:1.5rem;">
+                    <!-- Score circle card -->
+                    <div class="card" style="padding:2rem;text-align:center;">
+                        <div style="font-size:0.8rem;font-weight:600;color:#6b7280;
+                                    text-transform:uppercase;letter-spacing:0.05em;
+                                    margin-bottom:0.75rem;">Today's Score</div>
+                        <div style="width:120px;height:120px;border-radius:50%;
+                                    border:8px solid @GetScoreColor(myScore.FinalScore);
+                                    display:flex;align-items:center;justify-content:center;
+                                    margin:0 auto 1rem;flex-direction:column;">
+                            <div style="font-size:2.2rem;font-weight:800;
+                                        color:@GetScoreColor(myScore.FinalScore);line-height:1;">
+                                @myScore.FinalScore.ToString("F0")
+                            </div>
+                            <div style="font-size:0.72rem;color:#9ca3af;">/ 100</div>
+                        </div>
+                        <span class="pv-badge pv-badge-@GetGradeClass(myScore.FinalScore)"
+                              style="font-size:0.85rem;padding:5px 16px;">
+                            @GetGradeLabel(myScore.FinalScore)
+                        </span>
+                        <div style="margin-top:0.75rem;font-size:0.78rem;color:#9ca3af;">
+                            📅 @myScore.Date.ToString("MMMM dd, yyyy")
+                        </div>
+                    </div>
+
+                    <!-- Component breakdown card -->
+                    <div class="card" style="padding:1.5rem;">
+                        <div style="font-size:0.8rem;font-weight:700;color:#6b7280;
+                                    text-transform:uppercase;letter-spacing:0.05em;
+                                    margin-bottom:1rem;">Score Breakdown</div>
+
+                        @foreach (var (label, val, weight, icon) in new[]{
+                            ("Active Time",       myScore.ActiveTimeRatio,    35, "⏱"),
+                            ("Productive Apps",   myScore.ProductiveAppUsage, 30, "💻"),
+                            ("Keyboard Activity", myScore.KeyboardIntensity,  20, "⌨️"),
+                            ("Task Completion",   myScore.TaskCompletionRate, 15, "✅")
+                        })
+                        {
+                            <div style="margin-bottom:0.85rem;">
+                                <div style="display:flex;justify-content:space-between;
+                                            font-size:0.82rem;margin-bottom:4px;">
+                                    <span style="color:#374151;">
+                                        @icon @label
+                                        <span style="color:#94a3b8;font-size:0.72rem;">
+                                            (@weight% weight)
+                                        </span>
+                                    </span>
+                                    <span style="font-weight:700;color:#1e293b;">
+                                        @((val*100).ToString("F0"))%
+                                    </span>
+                                </div>
+                                <div style="background:#f1f5f9;border-radius:9999px;height:8px;">
+                                    <div style="background:@GetComponentColor(val);
+                                                height:8px;border-radius:9999px;
+                                                width:@((int)(val*100))%;
+                                                transition:width 0.5s ease;">
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        @if (myScore.ManualAdjustment != 0)
+                        {
+                            <div style="background:#f8fafc;border-radius:6px;
+                                        padding:0.5rem 0.75rem;margin-top:0.5rem;
+                                        font-size:0.78rem;color:#6b7280;">
+                                📝 Manual adjustment:
+                                @(myScore.ManualAdjustment > 0 ? "+" : "")@myScore.ManualAdjustment
+                                — @myScore.AdjustmentNote
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Score history -->
+                @if (myHistory.Count > 1)
+                {
+                    <div class="card" style="padding:1.5rem;">
+                        <div style="font-size:0.85rem;font-weight:700;color:#1e293b;margin-bottom:1rem;">
+                            📈 Score History (Last @myHistory.Count Days)
+                        </div>
+                        <div style="display:flex;align-items:flex-end;gap:6px;height:80px;">
+                            @foreach (var h in myHistory.OrderBy(h => h.Date))
+                            {
+                                var barH = (int)(h.FinalScore / 100 * 72);
+                                var isToday = h.Date == DateTime.Today;
+                                <div style="flex:1;display:flex;flex-direction:column;
+                                            align-items:center;gap:3px;cursor:default;"
+                                     title="@h.Date.ToString("MMM dd"): @h.FinalScore.ToString("F0")">
+                                    <div style="font-size:0.6rem;color:#9ca3af;">
+                                        @h.FinalScore.ToString("F0")
+                                    </div>
+                                    <div style="width:100%;border-radius:3px 3px 0 0;
+                                                background:@(isToday ? GetScoreColor(h.FinalScore) : "#94a3b8");
+                                                height:@barH px;min-height:4px;transition:height 0.3s;">
+                                    </div>
+                                    <div style="font-size:0.6rem;color:#9ca3af;white-space:nowrap;">
+                                        @h.Date.ToString("M/d")
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <div style="display:flex;gap:1rem;margin-top:0.75rem;
+                                    font-size:0.75rem;color:#6b7280;">
+                            <span>📊 Avg: @myHistory.Average(h => h.FinalScore).ToString("F1")</span>
+                            <span>⬆️ Best: @myHistory.Max(h => h.FinalScore).ToString("F0")</span>
+                            <span>⬇️ Lowest: @myHistory.Min(h => h.FinalScore).ToString("F0")</span>
+                        </div>
+                    </div>
+                }
+            }
+        }
     </div>
 </div>
 
+<!-- ══ ADJUST MODAL ══════════════════════════════════════════════════ -->
 @if (showAdjustModal && selectedScore != null)
 {
-    <div style="position:fixed;top:0;left:0;width:100vw;
-                    height:100vh;background:rgba(0,0,0,0.5);
-                    z-index:99999;display:flex;align-items:center;
-                    justify-content:center;">
-        <div style="background:white;border-radius:12px;
-                        width:420px;padding:2rem;
-                        box-shadow:0 8px 32px rgba(0,0,0,0.2);">
-            <h3 style="margin:0 0 1rem;">Manual Adjustment</h3>
-            <p style="color:#6b7280;font-size:0.85rem;">
-                Adjust score for
-                <strong>
-                    @selectedScore.Employee.User.FullName
-                </strong>.
-                Range: -10 to +10. A note is required.
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.45);
+                z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem;">
+        <div style="background:white;border-radius:14px;width:420px;max-width:95%;
+                    padding:1.75rem;box-shadow:0 25px 50px rgba(0,0,0,0.25);">
+            <h3 style="margin:0 0 0.5rem;color:#1e293b;">✏️ Manual Adjustment</h3>
+            <p style="color:#6b7280;font-size:0.85rem;margin:0 0 1.25rem;">
+                Adjusting score for <strong>@selectedScore.Employee.User.FullName</strong>.
+                Current: <strong>@selectedScore.FinalScore.ToString("F0")</strong>.
+                Range: -10 to +10.
             </p>
 
             @if (!string.IsNullOrEmpty(adjustError))
             {
-                <div class="alert-error">@adjustError</div>
+                <div style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;
+                            border-radius:6px;padding:0.6rem 0.8rem;font-size:0.83rem;
+                            margin-bottom:0.75rem;">
+                    @adjustError
+                </div>
             }
 
             <div class="form-group">
-                <label>Adjustment (-10 to +10)</label>
-                <input type="number" @bind="adjustValue"
-                       min="-10" max="10"
-                       style="width:100%;padding:0.6rem;
-                                  border:1px solid #ddd;
-                                  border-radius:6px;
-                                  box-sizing:border-box;" />
+                <label class="form-label">Adjustment Value (-10 to +10)</label>
+                <input type="number" class="form-input"
+                       @bind="adjustValue" min="-10" max="10" />
             </div>
             <div class="form-group">
-                <label>Reason (required)</label>
-                <input @bind="adjustNote"
-                       placeholder="Explain the adjustment..."
-                       style="width:100%;padding:0.6rem;
-                                  border:1px solid #ddd;
-                                  border-radius:6px;
-                                  box-sizing:border-box;" />
+                <label class="form-label">Reason (required)</label>
+                <input class="form-input" placeholder="Explain the adjustment..."
+                       @bind="adjustNote" />
             </div>
 
-            <div style="display:flex;justify-content:flex-end;
-                            gap:0.75rem;margin-top:1.5rem;">
-                <button class="btn-secondary"
-                        @onclick="CloseAdjustModal">
+            <div style="display:flex;justify-content:flex-end;gap:0.75rem;margin-top:1.25rem;">
+                <button class="btn-secondary" @onclick="() => showAdjustModal = false">
                     Cancel
                 </button>
-                <button class="btn-primary"
-                        @onclick="ApplyAdjustment">
-                    Apply
+                <button class="btn-primary" @onclick="ApplyAdjustment">
+                    Apply Adjustment
                 </button>
             </div>
         </div>
     </div>
 }
 
+<style>
+    .pv-card {
+        background: white; border: 1px solid #e2e8f0;
+        border-radius: 12px; padding: 1.1rem 1.25rem;
+        cursor: pointer; transition: all 0.15s;
+    }
+    .pv-card:hover { border-color: #3b82f6; box-shadow: 0 2px 10px rgba(59,130,246,0.1); }
+
+    .pv-badge { display:inline-block; padding:3px 10px; border-radius:9999px;
+                font-size:0.75rem; font-weight:600; }
+    .pv-badge-excellent { background:#dcfce7; color:#16a34a; }
+    .pv-badge-good      { background:#dbeafe; color:#2563eb; }
+    .pv-badge-average   { background:#fef9c3; color:#ca8a04; }
+    .pv-badge-low       { background:#fee2e2; color:#dc2626; }
+
+    .pv-th {
+        padding: 0.65rem 0.9rem; text-align:left;
+        font-size: 0.74rem; font-weight:700; color:#6b7280;
+        text-transform:uppercase; letter-spacing:0.04em;
+        border-bottom:2px solid #e2e8f0;
+    }
+    .pv-td {
+        padding: 0.75rem 0.9rem; font-size:0.85rem; color:#374151;
+        vertical-align: middle;
+    }
+</style>
+
 @code {
     private List<ProductivityScore> scores = new();
+    private ProductivityScore? myScore;
+    private List<ProductivityScore> myHistory = new();
     private double teamAverage = 0;
+    private bool isLoading = true;
     private bool isCalculating = false;
-    private string message = "";
+    private string message = string.Empty;
+    private int drillId = 0;
+
     private bool showAdjustModal = false;
     private ProductivityScore? selectedScore;
     private int adjustValue = 0;
-    private string adjustNote = "";
-    private string adjustError = "";
+    private string adjustNote = string.Empty;
+    private string adjustError = string.Empty;
+
+    private bool IsEmployee =>
+        SessionService.CurrentUser?.Role == "Employee";
 
     protected override async Task OnInitializedAsync()
     {
         if (SessionService.CurrentUser == null)
-        {
-            Navigation.NavigateTo("/login");
-            return;
-        }
+        { Navigation.NavigateTo("/login"); return; }
         await LoadData();
     }
 
     private async Task LoadData()
     {
-        var allScores = await ProductivityService.GetAllAsync();
+        isLoading = true;
+        var all = await ProductivityService.GetAllAsync();
 
-        // Employees only see their own score
-        if (SessionService.CurrentUser?.Role == "Employee")
+        if (IsEmployee)
         {
-            scores = allScores.Where(s =>
-                s.Employee.UserId ==
-                SessionService.CurrentUser.Id)
-                .ToList();
+            // Find this employee's record
+            var emp = await Db.Employees
+                .FirstOrDefaultAsync(e =>
+                    e.UserId == SessionService.CurrentUser!.Id);
+            if (emp != null)
+            {
+                myScore = all.FirstOrDefault(s => s.EmployeeId == emp.Id
+                              && s.Date == DateTime.Today);
+                myHistory = await ProductivityService.GetByEmployeeAsync(emp.Id);
+            }
         }
         else
         {
-            scores = allScores;
-            teamAverage = await ProductivityService
-                .GetTeamAverageAsync();
+            scores = all;
+            teamAverage = await ProductivityService.GetTeamAverageAsync();
         }
+        isLoading = false;
     }
 
     private async Task RecalculateAll()
@@ -282,62 +580,76 @@
         await ProductivityService.CalculateAllEmployeesAsync();
         await LoadData();
 
-        // Send productivity digest to all managers
         var managers = await Db.Users
-            .Where(u => u.Role == "Manager" ||
-                        u.Role == "Admin")
+            .Where(u => u.Role == "Manager" || u.Role == "Admin")
             .ToListAsync();
-
-        foreach (var manager in managers)
+        foreach (var m in managers)
         {
             await EmailService.SendProductivityDigestAsync(
-                manager.Email,
-                manager.FullName,
-                teamAverage,
-                scores.Count);
+                m.Email, m.FullName, teamAverage, scores.Count);
         }
 
-        message = $"Scores recalculated! " +
-            $"Digest sent to {managers.Count} managers.";
+        message = $"✅ Scores recalculated for {scores.Count} employee(s). " +
+                  $"Digest sent to {managers.Count} manager(s).";
         isCalculating = false;
     }
+
+    private void ToggleDrill(int id) =>
+        drillId = drillId == id ? 0 : id;
 
     private void ShowAdjustModal(ProductivityScore s)
     {
         selectedScore = s;
         adjustValue = 0;
-        adjustNote = "";
-        adjustError = "";
+        adjustNote = string.Empty;
+        adjustError = string.Empty;
         showAdjustModal = true;
     }
 
     private async Task ApplyAdjustment()
     {
-        adjustError = "";
+        adjustError = string.Empty;
         if (string.IsNullOrWhiteSpace(adjustNote))
-        {
-            adjustError = "A reason is required.";
-            return;
-        }
+        { adjustError = "A reason is required."; return; }
         if (adjustValue < -10 || adjustValue > 10)
-        {
-            adjustError = "Adjustment must be between -10 and +10.";
-            return;
-        }
+        { adjustError = "Adjustment must be between -10 and +10."; return; }
+
         await ProductivityService.ApplyManualAdjustmentAsync(
             selectedScore!.Id, adjustValue, adjustNote);
+        showAdjustModal = false;
         await LoadData();
-        CloseAdjustModal();
-        message = "Adjustment applied successfully!";
+        message = "✅ Adjustment applied.";
     }
 
-    private void CloseAdjustModal() => showAdjustModal = false;
-
-    private string GetScoreColor(double score) => score switch
+    private string GetScoreColor(double s) => s switch
     {
         >= 80 => "#16a34a",
-        >= 60 => "#ca8a04",
-        >= 40 => "#ea580c",
-        _ => "#dc2626"
+        >= 60 => "#2563eb",
+        >= 40 => "#ca8a04",
+        _     => "#dc2626"
+    };
+
+    private string GetComponentColor(double v) => v switch
+    {
+        >= 0.8 => "#16a34a",
+        >= 0.6 => "#3b82f6",
+        >= 0.4 => "#ca8a04",
+        _      => "#ef4444"
+    };
+
+    private string GetGradeClass(double s) => s switch
+    {
+        >= 80 => "excellent",
+        >= 60 => "good",
+        >= 40 => "average",
+        _     => "low"
+    };
+
+    private string GetGradeLabel(double s) => s switch
+    {
+        >= 80 => "🏆 High Performer",
+        >= 60 => "👍 Good",
+        >= 40 => "📊 Average",
+        _     => "⚠️ Needs Attention"
     };
 }

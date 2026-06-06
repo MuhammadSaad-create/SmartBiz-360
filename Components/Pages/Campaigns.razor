@@ -14,10 +14,7 @@
         <div class="topbar">
             <div>
                 <h2 class="page-title">Marketing Campaigns</h2>
-                <p class="page-sub">
-                    Create and manage marketing campaigns with
-                    email dispatch and ROI tracking.
-                </p>
+               
             </div>
             <div class="topbar-right">
                 <button class="btn-primary" @onclick="ShowAddModal">
@@ -282,14 +279,67 @@
         showModal = true;
     }
 
+    private static bool IsValidEmail(string email)
+    {
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email.Trim());
+            return addr.Address == email.Trim();
+        }
+        catch { return false; }
+    }
+
     private async Task SaveCampaign()
     {
         modalError = "";
+
         if (string.IsNullOrWhiteSpace(current.Name))
+        { modalError = "Campaign name is required."; return; }
+
+        if (current.Name.Trim().Length < 3)
+        { modalError = "Campaign name must be at least 3 characters."; return; }
+
+        if (string.IsNullOrWhiteSpace(current.TargetAudience))
+        { modalError = "Target audience is required."; return; }
+
+        if (current.Budget <= 0)
+        { modalError = "Budget must be greater than 0."; return; }
+
+        if (current.StartDate == default)
+        { modalError = "Start date is required."; return; }
+
+        if (current.EndDate == default)
+        { modalError = "End date is required."; return; }
+
+        if (current.EndDate < current.StartDate)
+        { modalError = "End date must be after the start date."; return; }
+
+        if (current.EndDate < DateTime.Today && !isEditing)
+        { modalError = "End date cannot be in the past."; return; }
+
+        // Validate each recipient email if provided
+        if (!string.IsNullOrWhiteSpace(current.RecipientEmails))
         {
-            modalError = "Campaign name is required.";
-            return;
+            var emails = current.RecipientEmails
+                .Split(',', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var email in emails)
+            {
+                if (!IsValidEmail(email.Trim()))
+                {
+                    modalError = $"Invalid email in recipients: '{email.Trim()}'";
+                    return;
+                }
+            }
         }
+
+        // Duplicate name check
+        bool duplicate = campaigns.Any(c =>
+            c.Name.Equals(current.Name.Trim(),
+                StringComparison.OrdinalIgnoreCase) &&
+            c.Id != current.Id);
+        if (duplicate)
+        { modalError = "A campaign with this name already exists."; return; }
+
         if (isEditing)
             await CampaignService.UpdateAsync(current);
         else
