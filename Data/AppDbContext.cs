@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SmartBiz_360.Models;
+using SmartBiz360.Models;
 
 namespace SmartBiz_360.Data;
 
@@ -12,4 +13,5 @@ public class AppDbContext : DbContext
 
     public DbSet<Product> Products => Set<Product>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<TaskReport> TaskReports { get; set; }
 }
