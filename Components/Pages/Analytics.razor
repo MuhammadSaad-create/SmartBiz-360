@@ -3,6 +3,7 @@
 @inject AnalyticsService AnalyticsService
 @inject SessionService SessionService
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <div class="dashboard-layout">
 
@@ -12,12 +13,10 @@
         <div class="topbar">
             <div>
                 <h2 class="page-title">Analytics Dashboard</h2>
-                <p class="page-sub">
-                    Global performance metrics and organizational trends.
-                </p>
+
             </div>
             <div class="topbar-right">
-                <button class="btn-primary">↑ Export</button>
+                <button class="btn-primary" @onclick="ExportToCsv">↑ Export</button>
             </div>
         </div>
 
@@ -203,6 +202,36 @@
     private int totalEmployees, totalDeals, openDeals, wonDeals;
     private Dictionary<string, int> dealStages = new();
     private Dictionary<string, int> taskStatuses = new();
+
+    private async Task ExportToCsv()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Metric,Value,Status");
+        sb.AppendLine($"Total Revenue,{totalRevenue:N0},From won deals");
+        sb.AppendLine($"Total Employees,{totalEmployees},Active");
+        sb.AppendLine($"Total Customers,{totalCustomers},Tracked");
+        sb.AppendLine($"At Risk Customers,{atRiskCustomers},At Risk");
+        sb.AppendLine($"Open Deals,{openDeals},In Progress");
+        sb.AppendLine($"Won Deals,{wonDeals},Won");
+        sb.AppendLine($"Total Tasks,{totalTasks},Total");
+        sb.AppendLine($"Tasks Completed,{tasksCompleted},Completed");
+        sb.AppendLine($"Overdue Tasks,{overdueTasks},Overdue");
+        sb.AppendLine();
+        sb.AppendLine("Deal Stage,Count");
+        foreach (var stage in dealStages)
+            sb.AppendLine($"{stage.Key},{stage.Value}");
+        sb.AppendLine();
+        sb.AppendLine("Task Status,Count");
+        foreach (var status in taskStatuses)
+            sb.AppendLine($"{status.Key},{status.Value}");
+
+        var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+        var base64 = Convert.ToBase64String(bytes);
+        var fileName = $"analytics_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+        await JS.InvokeVoidAsync("eval",
+            $"const a=document.createElement('a');a.href='data:text/csv;base64,{base64}';" +
+            $"a.download='{fileName}';document.body.appendChild(a);a.click();document.body.removeChild(a);");
+    }
 
     protected override async Task OnInitializedAsync()
     {
