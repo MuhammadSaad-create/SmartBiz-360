@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
 
     public DbSet<Product> Products => Set<Product>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<TaskReport> TaskReports { get; set; }
     public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
 
 }

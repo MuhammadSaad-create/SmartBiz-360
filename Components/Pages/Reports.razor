@@ -1,0 +1,250 @@
+﻿@page "/reports"
+@layout EmptyLayout
+@inject ReportService ReportService
+@inject SessionService SessionService
+@inject NavigationManager Navigation
+@inject EmailService EmailService
+@inject IJSRuntime JS
+
+<div class="dashboard-layout">
+
+    <AppSidebar CurrentPage="reports" />
+
+    <div class="main-content">
+        <div class="topbar">
+            <div>
+                <h2 class="page-title">Reports & Export Center</h2>
+                <p class="page-sub">
+                    Generate, schedule, and manage your
+                    business intelligence exports.
+                </p>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(message))
+        {
+            <div class="alert-@(isError ? "error" : "success")">
+                @message
+            </div>
+        }
+
+        <div class="reports-grid">
+
+            <!-- Summary PDF -->
+            <div class="report-card">
+                <div class="report-icon">📊</div>
+                <div class="report-title">
+                    Business Summary Report
+                </div>
+                <div class="report-desc">
+                    Complete overview of employees, customers,
+                    deals, tasks and revenue in PDF format.
+                </div>
+                <div class="report-actions">
+                    <button class="btn-primary"
+                            @onclick="ExportSummaryPdf"
+                            disabled="@isLoading">
+                        @(isLoading && activeReport == "pdf"
+                                                ? "Generating..." : "Export PDF")
+                    </button>
+                </div>
+            </div>
+
+            <!-- Employees Excel -->
+            <div class="report-card">
+                <div class="report-icon">👥</div>
+                <div class="report-title">Employee Directory</div>
+                <div class="report-desc">
+                    Full employee list with department, position,
+                    status and join date in Excel format.
+                </div>
+                <div class="report-actions">
+                    <button class="btn-primary"
+                            @onclick="ExportEmployees"
+                            disabled="@isLoading">
+                        @(isLoading && activeReport == "emp"
+                                                ? "Exporting..." : "Export Excel")
+                    </button>
+                </div>
+            </div>
+
+            <!-- Customers Excel -->
+            <div class="report-card">
+                <div class="report-icon">🤝</div>
+                <div class="report-title">Customer Report</div>
+                <div class="report-desc">
+                    Customer lifecycle, value tiers, at-risk
+                    status and last contact dates in Excel format.
+                </div>
+                <div class="report-actions">
+                    <button class="btn-primary"
+                            @onclick="ExportCustomers"
+                            disabled="@isLoading">
+                        @(isLoading && activeReport == "crm"
+                                                ? "Exporting..." : "Export Excel")
+                    </button>
+                </div>
+            </div>
+
+            <!-- Deals Excel -->
+            <div class="report-card">
+                <div class="report-icon">💰</div>
+                <div class="report-title">Sales Pipeline Report</div>
+                <div class="report-desc">
+                    All deals with stage, estimated value, owner
+                    and expected close date in Excel format.
+                </div>
+                <div class="report-actions">
+                    <button class="btn-primary"
+                            @onclick="ExportDeals"
+                            disabled="@isLoading">
+                        @(isLoading && activeReport == "sales"
+                                                ? "Exporting..." : "Export Excel")
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tasks Excel -->
+            <div class="report-card">
+                <div class="report-icon">✅</div>
+                <div class="report-title">
+                    Task Management Report
+                </div>
+                <div class="report-desc">
+                    All tasks with priority, status, assignee
+                    and due dates in Excel format.
+                </div>
+                <div class="report-actions">
+                    <button class="btn-primary"
+                            @onclick="ExportTasks"
+                            disabled="@isLoading">
+                        @(isLoading && activeReport == "tasks"
+                                                ? "Exporting..." : "Export Excel")
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool isLoading = false;
+    private string activeReport = "";
+    private string message = "";
+    private bool isError = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (SessionService.CurrentUser == null)
+            Navigation.NavigateTo("/login");
+
+        if (SessionService.CurrentUser?.Role == "Employee")
+            Navigation.NavigateTo("/dashboard");
+    }
+
+    private async Task ExportSummaryPdf()
+    {
+        await RunExport("pdf", "Business Summary Report",
+            async () =>
+        {
+            var bytes = await ReportService.ExportSummaryPdfAsync();
+            await DownloadFile(bytes,
+                "SmartBiz360_Summary.pdf",
+                "application/pdf");
+        });
+    }
+
+    private async Task ExportEmployees()
+    {
+        await RunExport("emp", "Employee Directory Report",
+            async () =>
+        {
+            var bytes = await ReportService.ExportEmployeesCsvAsync();
+            await DownloadFile(bytes,
+                "SmartBiz360_Employees.xlsx",
+                "application/vnd.openxmlformats-officedocument" +
+                ".spreadsheetml.sheet");
+        });
+    }
+
+    private async Task ExportCustomers()
+    {
+        await RunExport("crm", "Customer Report",
+            async () =>
+        {
+            var bytes = await ReportService.ExportCustomersCsvAsync();
+            await DownloadFile(bytes,
+                "SmartBiz360_Customers.xlsx",
+                "application/vnd.openxmlformats-officedocument" +
+                ".spreadsheetml.sheet");
+        });
+    }
+
+    private async Task ExportDeals()
+    {
+        await RunExport("sales", "Sales Pipeline Report",
+            async () =>
+        {
+            var bytes = await ReportService.ExportDealsCsvAsync();
+            await DownloadFile(bytes,
+                "SmartBiz360_Deals.xlsx",
+                "application/vnd.openxmlformats-officedocument" +
+                ".spreadsheetml.sheet");
+        });
+    }
+
+    private async Task ExportTasks()
+    {
+        await RunExport("tasks", "Task Management Report",
+            async () =>
+        {
+            var bytes = await ReportService.ExportTasksCsvAsync();
+            await DownloadFile(bytes,
+                "SmartBiz360_Tasks.xlsx",
+                "application/vnd.openxmlformats-officedocument" +
+                ".spreadsheetml.sheet");
+        });
+    }
+
+    private async Task RunExport(string key,
+    string reportName, Func<Task> action)
+    {
+        isLoading = true;
+        activeReport = key;
+        message = "";
+        try
+        {
+            await action();
+            message = "Export successful! Check your downloads.";
+            isError = false;
+
+            // Send report notification email
+            if (SessionService.CurrentUser != null)
+            {
+                await EmailService.SendReportEmailAsync(
+                    SessionService.CurrentUser.Email,
+                    SessionService.CurrentUser.FullName,
+                    reportName);
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Export failed: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isLoading = false;
+            activeReport = "";
+        }
+    }
+    private async Task DownloadFile(byte[] bytes,
+        string fileName, string mimeType)
+    {
+        var base64 = Convert.ToBase64String(bytes);
+        await JS.InvokeVoidAsync("downloadFile",
+            fileName, mimeType, base64);
+    }
+}

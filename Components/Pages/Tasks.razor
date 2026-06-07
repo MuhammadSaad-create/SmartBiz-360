@@ -1,0 +1,351 @@
+﻿@page "/tasks"
+@layout EmptyLayout
+@inject TaskService TaskService
+@inject SessionService SessionService
+@inject NavigationManager Navigation
+@inject EmailService EmailService
+@inject IJSRuntime JS
+
+<div class="dashboard-layout">
+
+    <AppSidebar CurrentPage="tasks" />
+
+    <div class="main-content" style="overflow-x:auto;">
+        <div class="topbar">
+            <div>
+                <h2 class="page-title">Task Board</h2>
+            </div>
+            <div class="topbar-right">
+                @if (SessionService.CurrentUser?.Role != "Employee")
+                {
+                    <button class="btn-secondary"
+                            @onclick="CheckOverdueTasks">
+                        ⏰ Send Overdue Alerts
+                    </button>
+                    <button class="btn-primary" @onclick="ShowAddModal">
+                        + Add Task
+                    </button>
+                }
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(message))
+        {
+            <div class="alert-success">@message</div>
+        }
+
+        <!-- Kanban Board -->
+        <div class="pipeline-board">
+            @foreach (var status in statuses)
+            {
+                var statusTasks = tasks
+                .Where(t => t.Status == status).ToList();
+
+                <div class="pipeline-column">
+                    <div class="pipeline-column-header">
+                        <span class="pipeline-stage-name">@status</span>
+                        <span class="pipeline-badge">
+                            @statusTasks.Count
+                        </span>
+                    </div>
+
+                    @foreach (var task in statusTasks)
+                    {
+                        <div class="deal-card">
+                            <div style="margin-bottom:0.4rem;">
+                                <span class="badge badge-priority-@task
+                                            .Priority.ToLower()">
+                                    @task.Priority
+                                </span>
+                            </div>
+                            <div class="deal-title">@task.Title</div>
+                            <div class="deal-company">
+                                @task.Description
+                            </div>
+                            <div style="font-size:0.75rem;color:#6b7280;
+                                                margin:0.4rem 0;">
+                                📅 @task.DueDate.ToString("MMM dd")
+                            </div>
+                            @if (task.AssignedTo != null)
+                            {
+                                <div style="font-size:0.75rem;
+                                                        color:#6b7280;">
+                                    👤 @task.AssignedTo.FullName
+                                </div>
+                            }
+
+                            <div style="display:flex;gap:0.25rem;
+                                                margin-top:0.5rem;
+                                                flex-wrap:wrap;">
+                                @foreach (var s in statuses
+                                                        .Where(s => s != status))
+                                {
+                                    <button style="font-size:0.7rem;
+                                                    padding:0.2rem 0.4rem;
+                                                    border:1px solid #e2e8f0;
+                                                    border-radius:4px;
+                                                    background:white;
+                                                    cursor:pointer;"
+                                            @onclick="() =>
+                                            MoveTask(task.Id, s)">
+                            → @s
+                        </button>
+                                                }
+                                @if (SessionService.CurrentUser?.Role
+                                                        != "Employee")
+                                {
+                                    <button class="btn-icon"
+                                            @onclick="() =>
+                                            ShowEditModal(task)">
+                            ✏️
+                        </button>
+                        <button class="btn-icon"
+                                @onclick="() =>
+                                                                            DeleteTask(task.Id)">
+                            🗑️
+                        </button>
+                                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@if (showModal)
+{
+    <div style="position:fixed;top:0;left:0;width:100vw;height:100vh;
+                    background:rgba(0,0,0,0.5);z-index:99999;
+                    display:flex;align-items:center;justify-content:center;">
+        <div style="background:white;border-radius:12px;width:500px;
+                        padding:2rem;box-shadow:0 8px 32px rgba(0,0,0,0.2);
+                        max-height:90vh;overflow-y:auto;">
+            <h3 style="margin:0 0 1rem;">
+                @(isEditing ? "Edit Task" : "Add New Task")
+            </h3>
+
+            @if (!string.IsNullOrEmpty(modalError))
+            {
+                <div class="alert-error">@modalError</div>
+            }
+
+            <div class="form-group">
+                <label>Title</label>
+                <input @bind="current.Title"
+                       placeholder="Task title"
+                       style="width:100%;padding:0.6rem;
+                                  border:1px solid #ddd;border-radius:6px;
+                                  box-sizing:border-box;" />
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <input @bind="current.Description"
+                       placeholder="Brief description"
+                       style="width:100%;padding:0.6rem;
+                                  border:1px solid #ddd;border-radius:6px;
+                                  box-sizing:border-box;" />
+            </div>
+            <div class="form-group">
+                <label>Priority</label>
+                <select @bind="current.Priority"
+                        style="width:100%;padding:0.6rem;
+                                   border:1px solid #ddd;border-radius:6px;
+                                   box-sizing:border-box;">
+                    <option>Low</option>
+                    <option>Medium</option>
+                    <option>High</option>
+                    <option>Urgent</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select @bind="current.Status"
+                        style="width:100%;padding:0.6rem;
+                                   border:1px solid #ddd;border-radius:6px;
+                                   box-sizing:border-box;">
+                    @foreach (var s in statuses)
+                    {
+                        <option>@s</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Due Date</label>
+                <input type="date" @bind="current.DueDate"
+                       style="width:100%;padding:0.6rem;
+                                  border:1px solid #ddd;border-radius:6px;
+                                  box-sizing:border-box;" />
+            </div>
+            <div class="form-group">
+                <label>Assign To</label>
+                <select @bind="current.AssignedToId"
+                        style="width:100%;padding:0.6rem;
+                                   border:1px solid #ddd;border-radius:6px;
+                                   box-sizing:border-box;">
+                    <option value="">-- Unassigned --</option>
+                    @foreach (var u in users)
+                    {
+                        <option value="@u.Id">@u.FullName</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Estimated Hours</label>
+                <input type="number" @bind="current.EstimatedHours"
+                       style="width:100%;padding:0.6rem;
+                                  border:1px solid #ddd;border-radius:6px;
+                                  box-sizing:border-box;" />
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;
+                            gap:0.75rem;margin-top:1.5rem;">
+                <button class="btn-secondary" @onclick="CloseModal">
+                    Cancel
+                </button>
+                <button class="btn-primary" @onclick="SaveTask">
+                    @(isEditing ? "Update" : "Add Task")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<TaskItem> tasks = new();
+    private List<User> users = new();
+    private bool showModal = false;
+    private bool isEditing = false;
+    private string modalError = "";
+    private TaskItem current = new();
+    private string message = "";
+
+    private readonly List<string> statuses = new()
+    {
+        "To Do", "In Progress", "In Review", "Done"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (SessionService.CurrentUser == null)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var allTasks = await TaskService.GetAllAsync();
+        users = await TaskService.GetUsersAsync();
+
+        if (SessionService.CurrentUser?.Role == "Employee")
+        {
+            tasks = allTasks.Where(t =>
+                t.AssignedToId == SessionService.CurrentUser.Id)
+                .ToList();
+        }
+        else
+        {
+            tasks = allTasks;
+        }
+    }
+
+    private void ShowAddModal()
+    {
+        isEditing = false;
+        current = new TaskItem
+        {
+            Status = "To Do",
+            Priority = "Medium",
+            DueDate = DateTime.Today.AddDays(7)
+        };
+        modalError = "";
+        showModal = true;
+    }
+
+    private void ShowEditModal(TaskItem task)
+    {
+        isEditing = true;
+        current = task;
+        modalError = "";
+        showModal = true;
+    }
+
+    private async Task SaveTask()
+    {
+        modalError = "";
+
+        if (string.IsNullOrWhiteSpace(current.Title))
+        { modalError = "Task title is required."; return; }
+
+        if (current.Title.Trim().Length < 3)
+        { modalError = "Title must be at least 3 characters."; return; }
+
+        if (current.DueDate < DateTime.Today && !isEditing)
+        { modalError = "Due date cannot be in the past."; return; }
+
+        if (current.EstimatedHours < 0)
+        { modalError = "Estimated hours cannot be negative."; return; }
+
+        if (current.EstimatedHours > 999)
+        { modalError = "Estimated hours cannot exceed 999."; return; }
+
+        // Duplicate title check (same assignee, not done)
+        bool duplicate = tasks.Any(t =>
+            t.Title.Equals(current.Title.Trim(),
+                StringComparison.OrdinalIgnoreCase) &&
+            t.AssignedToId == current.AssignedToId &&
+            t.Status != "Done" &&
+            t.Id != current.Id);
+        if (duplicate)
+        { modalError = "A similar open task already exists for this assignee."; return; }
+
+        if (isEditing)
+            await TaskService.UpdateAsync(current);
+        else
+            await TaskService.CreateAsync(current);
+
+        await LoadData();
+        CloseModal();
+    }
+
+    private async Task MoveTask(int id, string newStatus)
+    {
+        await TaskService.UpdateStatusAsync(id, newStatus);
+        await LoadData();
+    }
+
+    private async Task DeleteTask(int id)
+    {
+        bool confirmed = await JS.InvokeAsync<bool>(
+            "confirmDelete",
+            "Are you sure you want to delete this task?");
+        if (!confirmed) return;
+        await TaskService.DeleteAsync(id);
+        await LoadData();
+    }
+    private async Task CheckOverdueTasks()
+    {
+        var overdue = tasks.Where(t =>
+            t.DueDate < DateTime.Today &&
+            t.Status != "Done" &&
+            t.AssignedTo != null).ToList();
+
+        foreach (var task in overdue)
+        {
+            await EmailService.SendOverdueTaskAlertAsync(
+                task.AssignedTo!.Email,
+                task.AssignedTo.FullName,
+                task.Title);
+        }
+
+        if (overdue.Any())
+            message = $"Overdue alerts sent for " +
+                $"{overdue.Count} tasks!";
+    }
+
+    private void CloseModal() => showModal = false;
+}

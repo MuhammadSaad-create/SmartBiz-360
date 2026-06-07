@@ -1,0 +1,282 @@
+﻿@page "/sales"
+@layout EmptyLayout
+@inject SalesService SalesService
+@inject SessionService SessionService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<div class="dashboard-layout">
+
+    <AppSidebar CurrentPage="sales" />
+
+    <div class="main-content">
+        <div class="topbar">
+            <div>
+                <h2 class="page-title">Sales Pipeline</h2>
+               
+            </div>
+            <div class="topbar-right">
+                <input class="search-box" type="text"
+                       placeholder="Search deals..."
+                       @bind="searchTerm" @bind:event="oninput" />
+                <button class="btn-primary" @onclick="ShowAddModal">
+                    + New Deal
+                </button>
+            </div>
+        </div>
+
+        <!-- Pipeline Board -->
+        <div class="pipeline-board">
+            @foreach (var stage in stages)
+            {
+                var stageDeals = FilteredDeals
+                .Where(d => d.Stage == stage).ToList();
+                var stageTotal = stageDeals.Sum(d => d.EstimatedValue);
+
+                <div class="pipeline-column">
+                    <div class="pipeline-column-header">
+                        <span class="pipeline-stage-name">@stage</span>
+                        <span class="pipeline-badge">
+                            @stageDeals.Count
+                        </span>
+                    </div>
+                    <div class="pipeline-total">
+                        PKR @stageTotal.ToString("N0")
+                    </div>
+
+                    @foreach (var deal in stageDeals)
+                    {
+                        <div class="deal-card">
+                            <div class="deal-title">@deal.Title</div>
+                            <div class="deal-company">
+                                @(deal.Customer?.CompanyName
+                                                        ?? "No Customer")
+                    </div>
+                    <div class="deal-value">
+                        PKR @deal.EstimatedValue.ToString("N0")
+                    </div>
+                    <div class="deal-actions">
+                        <button class="btn-icon"
+                                @onclick="() =>
+                                                                        ShowEditModal(deal)">
+                            ✏️
+                        </button>
+                        <button class="btn-icon"
+                                @onclick="() =>
+                                                                        DeleteDeal(deal.Id)">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+                                }
+                </div>
+            }
+        </div>
+
+        <!-- Forecast Bar -->
+        <div class="data-card" style="margin-top:1rem;padding:1rem;">
+            <div style="display:flex;justify-content:space-between;
+                        align-items:center;">
+                <div>
+                    <div class="stat-label">Forecasted Revenue</div>
+                    <div class="stat-value">
+                        PKR @GetForecast()
+                    </div>
+                </div>
+                <div>
+                    <div class="stat-label">Total Deals</div>
+                    <div class="stat-value">@deals.Count</div>
+                </div>
+                <div>
+                    <div class="stat-label">Won Deals</div>
+                    <div class="stat-value" style="color:#16a34a;">
+                        @deals.Count(d => d.Stage == "Won")
+                    </div>
+                </div>
+                <div>
+                    <div class="stat-label">Lost Deals</div>
+                    <div class="stat-value" style="color:#dc2626;">
+                        @deals.Count(d => d.Stage == "Lost")
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (showModal)
+{
+    <div style="position:fixed;top:0;left:0;width:100vw;height:100vh;
+                    background:rgba(0,0,0,0.5);z-index:99999;
+                    display:flex;align-items:center;justify-content:center;">
+        <div style="background:white;border-radius:12px;width:500px;
+                        padding:2rem;box-shadow:0 8px 32px rgba(0,0,0,0.2);
+                        max-height:90vh;overflow-y:auto;">
+            <h3 style="margin:0 0 1rem;">
+                @(isEditing ? "Edit Deal" : "New Deal")
+            </h3>
+
+            @if (!string.IsNullOrEmpty(modalError))
+            {
+                <div class="alert-error">@modalError</div>
+            }
+
+            <div class="form-group">
+                <label>Deal Title</label>
+                <input @bind="current.Title"
+                       placeholder="Cloud Migration Q3"
+                       style="width:100%;padding:0.6rem;
+                                  border:1px solid #ddd;border-radius:6px;
+                                  box-sizing:border-box;" />
+            </div>
+            <div class="form-group">
+                <label>Estimated Value (PKR)</label>
+                <input type="number" @bind="current.EstimatedValue"
+                       placeholder="500000"
+                       style="width:100%;padding:0.6rem;
+                                  border:1px solid #ddd;border-radius:6px;
+                                  box-sizing:border-box;" />
+            </div>
+            <div class="form-group">
+                <label>Stage</label>
+                <select @bind="current.Stage"
+                        style="width:100%;padding:0.6rem;
+                                   border:1px solid #ddd;border-radius:6px;
+                                   box-sizing:border-box;">
+                    @foreach (var s in stages)
+                    {
+                        <option>@s</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Customer</label>
+                <select @bind="current.CustomerId"
+                        style="width:100%;padding:0.6rem;
+                                   border:1px solid #ddd;border-radius:6px;
+                                   box-sizing:border-box;">
+                    <option value="">-- Select Customer --</option>
+                    @foreach (var c in customers)
+                    {
+                        <option value="@c.Id">@c.CompanyName</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Expected Close Date</label>
+                <input type="date" @bind="current.ExpectedCloseDate"
+                       style="width:100%;padding:0.6rem;
+                                  border:1px solid #ddd;border-radius:6px;
+                                  box-sizing:border-box;" />
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;
+                            gap:0.75rem;margin-top:1.5rem;">
+                <button class="btn-secondary" @onclick="CloseModal">
+                    Cancel
+                </button>
+                <button class="btn-primary" @onclick="SaveDeal">
+                    @(isEditing ? "Update" : "Add Deal")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Deal> deals = new();
+    private List<Customer> customers = new();
+    private List<User> users = new();
+    private string searchTerm = "";
+    private bool showModal = false;
+    private bool isEditing = false;
+    private string modalError = "";
+    private Deal current = new();
+
+    private readonly List<string> stages = new()
+    {
+        "New Lead", "Qualified", "Proposal Sent",
+        "Negotiation", "Won", "Lost"
+    };
+
+    private List<Deal> FilteredDeals => deals
+        .Where(d => string.IsNullOrEmpty(searchTerm) ||
+            d.Title.Contains(searchTerm,
+                StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (SessionService.CurrentUser == null)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+        if (SessionService.CurrentUser.Role == "Employee")
+        {
+            Navigation.NavigateTo("/dashboard");
+            return;
+        }
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        deals = await SalesService.GetAllAsync();
+        customers = await SalesService.GetCustomersAsync();
+        users = await SalesService.GetUsersAsync();
+    }
+
+    private void ShowAddModal()
+    {
+        isEditing = false;
+        current = new Deal
+        {
+            Stage = "New Lead",
+            ExpectedCloseDate = DateTime.Today.AddMonths(1)
+        };
+        modalError = "";
+        showModal = true;
+    }
+
+    private void ShowEditModal(Deal deal)
+    {
+        isEditing = true;
+        current = deal;
+        modalError = "";
+        showModal = true;
+    }
+
+    private async Task SaveDeal()
+    {
+        modalError = "";
+        if (string.IsNullOrWhiteSpace(current.Title))
+        {
+            modalError = "Deal title is required.";
+            return;
+        }
+        if (isEditing)
+            await SalesService.UpdateAsync(current);
+        else
+            await SalesService.CreateAsync(current);
+
+        await LoadData();
+        CloseModal();
+    }
+
+    private string GetForecast()
+    {
+        return SalesService.GetForecastedRevenue(deals).ToString("N0");
+    }
+    private async Task DeleteDeal(int id)
+    {
+        bool confirmed = await JS.InvokeAsync<bool>(
+            "confirmDelete",
+            "Are you sure you want to delete this deal?");
+        if (!confirmed) return;
+        await SalesService.DeleteAsync(id);
+        await LoadData();
+    }
+
+    private void CloseModal() => showModal = false;
+}
